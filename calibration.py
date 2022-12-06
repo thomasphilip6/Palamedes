@@ -3,7 +3,6 @@ import numpy as np
 from PIL import Image
 from numpy import asarray
 
-
 letters=["A","B","C","D","E","F","G","H"]
 numbers=["1","2","3","4","5","6","7","8"]
 cells=[]
@@ -14,6 +13,27 @@ for letter in letters:
 
 nline = 7
 ncol = 7
+evt=0
+
+
+def mouseClick(event,xPos,yPos,flags,params):
+    global evt
+    global xMouse
+    global yMouse
+    if event==cv2.EVENT_LBUTTONDOWN:
+        #print(xMouse,yMouse)
+        xMouse=xPos
+        yMouse=yPos
+        evt=event #is equal to 1 for the left click
+    if event==cv2.EVENT_LBUTTONUP:
+        xMouse=xPos
+        yMouse=yPos
+        evt=event #is equal to 4 for this one
+    if event==cv2.EVENT_RBUTTONDOWN:
+        xMouse=xPos
+        yMouse=yPos
+        evt=event #is equal to 2 for the right click
+                
 
 class Line:
     def __init__(self, image, yB, xB, yA, xA, coordinate1, coordinate2, wanted):
@@ -91,28 +111,36 @@ fnl = cv2.drawChessboardCorners(grayImage, (nline, ncol), corners, retval)
 
 TopLine=Line(image2, int(corners[6][0][1]), int(corners[6][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), 10, 390, "Y" ) 
 Line.drawLines(TopLine)
-hint=-5
-k=0
-userInput=""
-j=0
 
-while True:
+cv2.namedWindow('board')
+cv2.setMouseCallback('board',mouseClick)
+counter=0
+flag=0
+print("Left Click to define the Y parameter for the upper right corner")
+print("Right Click to define the Y parameter for the lower left corner")
 
-    cv2.imshow("board", image2)
-    cv2.imshow("board2", fnl)
-    Diag1=Line(image2, int(corners[0][0][1]), int(corners[0][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), (350+hint), 10, "Y" ) 
-    (xKeyPoint1,yKeyPoint1)=Line.getY(Diag1,(350+hint))
-    mycircle=cv2.circle(image2, ((xKeyPoint1),(yKeyPoint1)),5,(100,255,100),3)
-    Line.drawLines(Diag1)
 
-    if cv2.waitKey(1) & 0xff == ord('n'):
-        cv2.destroyAllWindows()
-        userInput=input("Slide up or down the line ")
-        if userInput != "":
-           hint=int(userInput)
-    
+while flag!=2:
+    cv2.imshow('board', image2)
+    #cv2.imshow("board2", fnl)
+    if evt==1 and flag==0:
+        yUpperRight = yMouse
+        flag=1
+    if evt==2 and flag==1:
+        yLowerLeft = yMouse
+        flag=2
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
+Diag1=Line(image2, int(corners[0][0][1]), int(corners[0][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), yUpperRight, yLowerLeft, "X" )
+Line.drawLines(Diag1)
+while True:
+    cv2.imshow('board', image2)
+    if cv2.waitKey(1) & 0xff == ord('q'):
+        break
+
+
+
+  #  cv2.imshow("board2", fnl)        
 
     #cv2.rectangle(image2,lowerLeft,upperRight,(0,0,255),3)
     #cv2.circle(image2, (int(corners[0][0][0]),int(corners[0][0][1])),5,(0,255,0),3)#green
