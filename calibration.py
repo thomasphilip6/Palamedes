@@ -16,7 +16,7 @@ nline = 7
 ncol = 7
 
 class Line:
-    def __init__(self, image, yB, xB, yA, xA, coordinate1, wanted):
+    def __init__(self, image, yB, xB, yA, xA, coordinate1, coordinate2, wanted):
         self.image=image
         self.yB=yB
         self.xB=xB
@@ -24,6 +24,7 @@ class Line:
         self.xA=xA
         self.coordinate1=coordinate1
         self.wanted=wanted
+        self.coordinate2=coordinate2
 
     def getSlope(self):
         slope=(self.yB-self.yA)/(self.xB-self.xA)
@@ -33,21 +34,24 @@ class Line:
         originParam=self.yB-self.getSlope()*self.xB
         return originParam
 
-    def getY(self):
-        Y=int(self.getSlope()*self.coordinate1 + self.originParam())
-        X=int(self.coordinate1)
+    def getY(self,coordinate):
+        Y=int(self.getSlope()*coordinate + self.originParam())
+        X=int(coordinate)
         return X,Y
-    def getX(self):
-        X=(self.coordinate1-self.originParma())/self.getSlope()
-        Y=int(self.coordinate1)
+    def getX(self,coordinate):
+        X=int((coordinate-self.originParam())/self.getSlope())
+        Y=int(coordinate)
         return X,Y
 
     def drawLines(self):
+
         if self.wanted=='X':
-            (x,y)=self.getX()
+            (x1,y1)=self.getX(self.coordinate1)
+            (x2,y2)=self.getX(self.coordinate2)
         if self.wanted=='Y':
-            (x,y)=self.getY()
-        cv2.line(self.image, (int(self.xB),int(self.yB)) , (x,y), (0,255,255),2 )
+            (x1,y1)=self.getY(self.coordinate1)
+            (x2,y2)=self.getY(self.coordinate2)
+        cv2.line(self.image, (x2,y2) , (x1,y1), (0,255,255),2 )
 
 def calibrationChessBoard(image, nline, ncol):
     resizedImage=np.array(image.resize((400,400)))
@@ -85,18 +89,36 @@ print(retval)
 print(corners)
 fnl = cv2.drawChessboardCorners(grayImage, (nline, ncol), corners, retval)
 
-Diag1=Line(image2, int(corners[0][0][1]), int(corners[0][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), 350, "Y" )   
-Line.drawLines(Diag1) 
+TopLine=Line(image2, int(corners[6][0][1]), int(corners[6][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), 10, 390, "Y" ) 
+Line.drawLines(TopLine)
+hint=-5
+k=0
+userInput=""
+j=0
 
 while True:
-    cv2.imshow("board2", fnl)
+
     cv2.imshow("board", image2)
-    #cv2.rectangle(image2,lowerLeft,upperRight,(0,0,255),3)
-    cv2.circle(image2, (int(corners[0][0][0]),int(corners[0][0][1])),5,(0,255,0),3)#green
-    cv2.circle(image2, (int(corners[1][0][0]),int(corners[1][0][1])),5,(0,255,255),3)#yellow
-    cv2.circle(image2, (int(corners[6][0][0]),int(corners[6][0][1])),5,(255,255,0),3)#blue
-    cv2.circle(image2, (int(corners[48][0][0]),int(corners[48][0][1])),5,(0,0,255),3)#red
+    cv2.imshow("board2", fnl)
+    Diag1=Line(image2, int(corners[0][0][1]), int(corners[0][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), (350+hint), 10, "Y" ) 
+    (xKeyPoint1,yKeyPoint1)=Line.getY(Diag1,(350+hint))
+    mycircle=cv2.circle(image2, ((xKeyPoint1),(yKeyPoint1)),5,(100,255,100),3)
+    Line.drawLines(Diag1)
+
+    if cv2.waitKey(1) & 0xff == ord('n'):
+        cv2.destroyAllWindows()
+        userInput=input("Slide up or down the line ")
+        if userInput != "":
+           hint=int(userInput)
+    
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
+
+    #cv2.rectangle(image2,lowerLeft,upperRight,(0,0,255),3)
+    #cv2.circle(image2, (int(corners[0][0][0]),int(corners[0][0][1])),5,(0,255,0),3)#green
+    #cv2.circle(image2, (int(corners[1][0][0]),int(corners[1][0][1])),5,(0,255,255),3)#yellow
+    #cv2.circle(image2, (int(corners[6][0][0]),int(corners[6][0][1])),5,(255,255,0),3)#blue
+    #cv2.circle(image2, (int(corners[48][0][0]),int(corners[48][0][1])),5,(0,0,255),3)#red
+    #I keep those lines to debug
 
 
