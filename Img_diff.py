@@ -4,12 +4,13 @@ import imutils
 import numpy as np
 
 #import images
-img1 = cv2.imread("game3.jpg")
+img1 = cv2.imread("data\game3.jpg")
 img1 = cv2.resize(img1,(600,400))
 cv2.imshow("first image",img1)
-img2 = cv2.imread("game4.jpg")
-img2 = cv2.resize(img2,(600,400))
 
+img2 = cv2.imread("data\game4.jpg")
+img2 = cv2.resize(img2,(600,400))
+cv2.imshow("Second image",img2)
 
 #gray it up and blur as well would be nice
 gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
