@@ -133,6 +133,28 @@ while flag!=2:
         break
 Diag1=Line(image2, int(corners[0][0][1]), int(corners[0][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), yUpperRight, yLowerLeft, "X" )
 Line.drawLines(Diag1)
+flag=0
+print("Left Click to define the Y parameter for the upper left corner")
+print("Right Click to define the Y parameter for the lower right corner")
+
+while flag!=2:
+    cv2.imshow('board', image2)
+    if evt==1 and flag==0:
+        yUpperLeft = yMouse
+        flag=1
+    if evt==2 and flag==1:
+        yLowerRight = yMouse
+        flag=2
+    if cv2.waitKey(1) & 0xff == ord('q'):
+        break
+Diag2=Line(image2, int(corners[6][0][1]), int(corners[6][0][0]), int(corners[42][0][1]), int(corners[42][0][0]), yUpperLeft, yLowerRight, "X" )
+Line.drawLines(Diag2)
+#creation of the bounding reactangle
+cv2.line(image2,(Line.getX(Diag2,yUpperLeft)),(Line.getX(Diag1, yLowerLeft)),(0,0,255),2)
+cv2.line(image2,(Line.getX(Diag2,yLowerRight)),(Line.getX(Diag1, yUpperRight)),(0,0,255),2)
+cv2.line(image2,(Line.getX(Diag2,yUpperLeft)),(Line.getX(Diag1, yUpperRight)),(0,0,255),2)
+cv2.line(image2,(Line.getX(Diag1,yLowerLeft)),(Line.getX(Diag2, yLowerRight)),(0,0,255),2)
+
 while True:
     cv2.imshow('board', image2)
     if cv2.waitKey(1) & 0xff == ord('q'):
