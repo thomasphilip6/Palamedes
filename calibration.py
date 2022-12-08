@@ -93,7 +93,7 @@ def calibrationChessBoard(image, nline, ncol):
         
 approx=0
 
-image2=np.array(Image.open('thirdTest.jpeg').resize((400,400)))
+image2=np.array(Image.open('thirdtest.jpeg').resize((400,400)))
 grayImage = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
 
 retval, corners = cv2.findChessboardCorners(grayImage, (nline, ncol), None)
@@ -132,7 +132,6 @@ while flag!=2:
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
 Diag1=Line(image2, int(corners[0][0][1]), int(corners[0][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), yUpperRight, yLowerLeft, "X" )
-Line.drawLines(Diag1)
 flag=0
 print("Left Click to define the Y parameter for the upper left corner")
 print("Right Click to define the Y parameter for the lower right corner")
@@ -148,27 +147,43 @@ while flag!=2:
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
 Diag2=Line(image2, int(corners[6][0][1]), int(corners[6][0][0]), int(corners[42][0][1]), int(corners[42][0][0]), yUpperLeft, yLowerRight, "X" )
-Line.drawLines(Diag2)
-#creation of the bounding reactangle
+#creation of the bounding rectangle
 cv2.line(image2,(Line.getX(Diag2,yUpperLeft)),(Line.getX(Diag1, yLowerLeft)),(0,0,255),2)
 cv2.line(image2,(Line.getX(Diag2,yLowerRight)),(Line.getX(Diag1, yUpperRight)),(0,0,255),2)
 cv2.line(image2,(Line.getX(Diag2,yUpperLeft)),(Line.getX(Diag1, yUpperRight)),(0,0,255),2)
 cv2.line(image2,(Line.getX(Diag1,yLowerLeft)),(Line.getX(Diag2, yLowerRight)),(0,0,255),2)
+#creating instances for the bounding rectangle
+xUpperLeft,ignore = Line.getX(Diag2,yUpperLeft)
+xLowerLeft,ignore = Line.getX(Diag1, yLowerLeft)
+xUpperRight,ignore = Line.getX(Diag1,yUpperRight)
+xLowerRight,ignore = Line.getX(Diag2,yLowerRight)
+
+horizontal1=Line(image2,int(yUpperLeft),int(xUpperLeft),int(yUpperRight),int(xUpperRight),10,490,"Y")
+lastHorizontal=Line(image2,int(yLowerLeft),int(xLowerLeft),int(yLowerRight),int(xLowerRight),10,490,"Y")
+vertical1=Line(image2,int(yUpperLeft),int(xUpperLeft),int(yLowerLeft),int(xLowerLeft),10,490,"X")
+lastVertical=Line(image2,int(yUpperRight),int(xUpperRight),int(yLowerRight),int(xLowerRight),10,490,"X")
+
+#creating instances for the lines
+#horizontals
+horizontalsArray=[]
+horizontalsArray.append(horizontal1)
+for j in range(0,7):
+    horizontalsArray.append(Line(image2, int(corners[j][0][1]),int(corners[j][0][0]),int(corners[j+42][0][1]),int(corners[j+42][0][0]),10,490,"Y"))
+horizontalsArray.append(lastHorizontal)
+for horizontal in horizontalsArray:
+    Line.drawLines(horizontal)
+#verticals
+indexArray=[0,7,14,21,28,35,42]
+verticalsArray=[]
+verticalsArray.append(vertical1)
+for index in indexArray:
+    verticalsArray.append(Line(image2, int(corners[index][0][1]),int(corners[index][0][0]),int(corners[index+6][0][1]),int(corners[index+6][0][0]),10,490,"X"))
+verticalsArray.append(lastVertical)
+for vertical in verticalsArray:
+    Line.drawLines(vertical)
 
 while True:
     cv2.imshow('board', image2)
+    cv2.imshow('boardcv2',fnl)
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
-
-
-
-  #  cv2.imshow("board2", fnl)        
-
-    #cv2.rectangle(image2,lowerLeft,upperRight,(0,0,255),3)
-    #cv2.circle(image2, (int(corners[0][0][0]),int(corners[0][0][1])),5,(0,255,0),3)#green
-    #cv2.circle(image2, (int(corners[1][0][0]),int(corners[1][0][1])),5,(0,255,255),3)#yellow
-    #cv2.circle(image2, (int(corners[6][0][0]),int(corners[6][0][1])),5,(255,255,0),3)#blue
-    #cv2.circle(image2, (int(corners[48][0][0]),int(corners[48][0][1])),5,(0,0,255),3)#red
-    #I keep those lines to debug
-
-
