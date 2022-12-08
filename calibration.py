@@ -73,6 +73,20 @@ class Line:
             (x2,y2)=self.getY(self.coordinate2)
         cv2.line(self.image, (x2,y2) , (x1,y1), (0,255,255),2 )
 
+def findIntersections(Line1,Line2,debug,image):
+    a1=Line.getSlope(Line1)
+    a2=Line.getSlope(Line2)
+    b1=Line.originParam(Line1)
+    b2=Line.originParam(Line2)
+
+    xIntersection=int((b2-b1)/(a1-a2))
+    yIntersection=int(a1*xIntersection+b1)
+
+    if debug==1:
+        cv2.circle(image,(xIntersection,yIntersection),3,(255,0,0),2)
+
+    return xIntersection,yIntersection
+
 def calibrationChessBoard(image, nline, ncol):
     resizedImage=np.array(image.resize((400,400)))
     grayImage = cv2.cvtColor(resizedImage,cv2.COLOR_BGR2GRAY)
@@ -108,9 +122,6 @@ else:
 print(retval)
 print(corners)
 fnl = cv2.drawChessboardCorners(grayImage, (nline, ncol), corners, retval)
-
-TopLine=Line(image2, int(corners[6][0][1]), int(corners[6][0][0]), int(corners[48][0][1]), int(corners[48][0][0]), 10, 390, "Y" ) 
-Line.drawLines(TopLine)
 
 cv2.namedWindow('board')
 cv2.setMouseCallback('board',mouseClick)
@@ -171,7 +182,7 @@ for j in range(0,7):
     horizontalsArray.append(Line(image2, int(corners[j][0][1]),int(corners[j][0][0]),int(corners[j+42][0][1]),int(corners[j+42][0][0]),10,490,"Y"))
 horizontalsArray.append(lastHorizontal)
 for horizontal in horizontalsArray:
-    Line.drawLines(horizontal)
+   Line.drawLines(horizontal)
 #verticals
 indexArray=[0,7,14,21,28,35,42]
 verticalsArray=[]
@@ -179,9 +190,12 @@ verticalsArray.append(vertical1)
 for index in indexArray:
     verticalsArray.append(Line(image2, int(corners[index][0][1]),int(corners[index][0][0]),int(corners[index+6][0][1]),int(corners[index+6][0][0]),10,490,"X"))
 verticalsArray.append(lastVertical)
+
 for vertical in verticalsArray:
     Line.drawLines(vertical)
-
+interDuet=findIntersections(horizontalsArray[1], verticalsArray[0], 1, image2)
+interDuet=findIntersections(horizontalsArray[0], verticalsArray[1], 1, image2)
+print(interDuet)
 while True:
     cv2.imshow('board', image2)
     cv2.imshow('boardcv2',fnl)
