@@ -6,6 +6,7 @@ from numpy import asarray
 letters=["A","B","C","D","E","F","G","H"]
 numbers=["1","2","3","4","5","6","7","8"]
 cells=[]
+coordinates=[]
 
 for letter in letters:
     for number in numbers:
@@ -87,40 +88,16 @@ def findIntersections(Line1,Line2,debug,image):
 
     return xIntersection,yIntersection
 
-def calibrationChessBoard(image, nline, ncol):
-    resizedImage=np.array(image.resize((400,400)))
-    grayImage = cv2.cvtColor(resizedImage,cv2.COLOR_BGR2GRAY)
-    retval, corners = cv2.findChessboardCorners(grayImage, (nline, ncol), None)
-    lowerLeft=(int(corners[0][0][0]-approx),int(corners[0][0][1]+approx))
-    upperRight=(int(corners[int(nline*ncol-1)][0][0]+approx),int(corners[int(nline*ncol-1)][0][1]-approx))
-
-    if (retval):
-        print("board detected")
-    else:
-        print("no board detected")
-
-    fnl = cv2.drawChessboardCorners(grayImage, (nline, ncol), corners, retval)
-    while cv2.waitKey(1) & 0xff != ord('n'):
-        cv2.imshow("calibration before augmentation", image2)
-        cv2.imshow("exact calibration", fnl)
-        cv2.rectangle(image2,upperLeft,bottomRight,(0,0,255),3)
-        
-approx=0
-
 image2=np.array(Image.open('thirdtest.jpeg').resize((400,400)))
+testImage=np.array(Image.open('thirdtest.jpeg').resize((400,400)))
 grayImage = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
 
 retval, corners = cv2.findChessboardCorners(grayImage, (nline, ncol), None)
-lowerLeft=(int(corners[0][0][0]-approx),int(corners[0][0][1]+approx))
-upperRight=(int(corners[48][0][0]+approx),int(corners[48][0][1]-approx))
-print(corners[48][0][0])
-print(corners[48][0][1])
 if (retval):
     print("there is a board")
 else:
     print("no board")
-print(retval)
-print(corners)
+
 fnl = cv2.drawChessboardCorners(grayImage, (nline, ncol), corners, retval)
 
 cv2.namedWindow('board')
@@ -130,10 +107,8 @@ flag=0
 print("Left Click to define the Y parameter for the upper right corner")
 print("Right Click to define the Y parameter for the lower left corner")
 
-
 while flag!=2:
     cv2.imshow('board', image2)
-    #cv2.imshow("board2", fnl)
     if evt==1 and flag==0:
         yUpperRight = yMouse
         flag=1
@@ -193,11 +168,32 @@ verticalsArray.append(lastVertical)
 for vertical in verticalsArray:
     Line.drawLines(vertical)
 
-interDuet=findIntersections(horizontalsArray[1], verticalsArray[0], 1, image2)
-interDuet=findIntersections(horizontalsArray[0], verticalsArray[1], 1, image2)
-print(interDuet)
+#we'll try to fill the cell array now
+for i in range(8):
+    for j in range(8):
+        interDuet1=findIntersections(horizontalsArray[j], verticalsArray[i],  1, testImage)
+        interDuet2=findIntersections(horizontalsArray[j+1], verticalsArray[i+1],  1, testImage)
+        duetArray=[interDuet1,interDuet2]
+        coordinates.append(duetArray)
+print(coordinates)
+print(len(coordinates))
+
+for i in range(9):
+    for j in range(9):
+        findIntersections(horizontalsArray[i], verticalsArray[j], 1, image2)
+"""
+for i in range(9):
+    for j in range(9):
+        findIntersections(verticalsArray[j], horizontalsArray[i], 1, testImage)
+"""
+indexWanted=cells.index("B7")
+print(indexWanted)
+xCase,yCase=coordinates[indexWanted][0]
+xCase1,yCase1=coordinates[indexWanted][1]
+cv2.rectangle(testImage,(xCase,yCase),(xCase1,yCase1),(0,255,0),2)
 while True:
     cv2.imshow('board', image2)
+    cv2.imshow('coordinates',testImage)
     cv2.imshow('boardcv2',fnl)
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
