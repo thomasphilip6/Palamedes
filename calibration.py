@@ -74,6 +74,12 @@ class Line:
             (x2,y2)=self.getY(self.coordinate2)
         cv2.line(self.image, (x2,y2) , (x1,y1), (0,255,255),2 )
 
+def findCell(image,name):
+    indexWanted=cells.index(str(name))
+    xCase,yCase=coordinates[indexWanted][0]
+    xCase1,yCase1=coordinates[indexWanted][1]
+    cv2.rectangle(image,(xCase,yCase),(xCase1,yCase1),(0,255,0),2)
+
 def findIntersections(Line1,Line2,debug,image):
     a1=Line.getSlope(Line1)
     a2=Line.getSlope(Line2)
@@ -186,11 +192,7 @@ for i in range(9):
     for j in range(9):
         findIntersections(verticalsArray[j], horizontalsArray[i], 1, testImage)
 """
-indexWanted=cells.index("B7")
-print(indexWanted)
-xCase,yCase=coordinates[indexWanted][0]
-xCase1,yCase1=coordinates[indexWanted][1]
-cv2.rectangle(testImage,(xCase,yCase),(xCase1,yCase1),(0,255,0),2)
+findCell(testImage, "C3")
 while True:
     cv2.imshow('board', image2)
     cv2.imshow('coordinates',testImage)
