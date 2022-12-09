@@ -169,8 +169,8 @@ xLowerLeft,ignore = Line.getX(Diag1, yLowerLeft)
 xUpperRight,ignore = Line.getX(Diag1,yUpperRight)
 xLowerRight,ignore = Line.getX(Diag2,yLowerRight)
 
-horizontal1=Line(image2,int(yUpperLeft),int(xUpperLeft),int(yUpperRight),int(xUpperRight),10,490,"Y")
-lastHorizontal=Line(image2,int(yLowerLeft),int(xLowerLeft),int(yLowerRight),int(xLowerRight),10,490,"Y")
+lastHorizontal=Line(image2,int(yUpperLeft),int(xUpperLeft),int(yUpperRight),int(xUpperRight),10,490,"Y")
+horizontal1=Line(image2,int(yLowerLeft),int(xLowerLeft),int(yLowerRight),int(xLowerRight),10,490,"Y")
 vertical1=Line(image2,int(yUpperLeft),int(xUpperLeft),int(yLowerLeft),int(xLowerLeft),10,490,"X")
 lastVertical=Line(image2,int(yUpperRight),int(xUpperRight),int(yLowerRight),int(xLowerRight),10,490,"X")
 
@@ -190,9 +190,9 @@ verticalsArray.append(vertical1)
 for index in indexArray:
     verticalsArray.append(Line(image2, int(corners[index][0][1]),int(corners[index][0][0]),int(corners[index+6][0][1]),int(corners[index+6][0][0]),10,490,"X"))
 verticalsArray.append(lastVertical)
-
 for vertical in verticalsArray:
     Line.drawLines(vertical)
+
 interDuet=findIntersections(horizontalsArray[1], verticalsArray[0], 1, image2)
 interDuet=findIntersections(horizontalsArray[0], verticalsArray[1], 1, image2)
 print(interDuet)
