@@ -48,6 +48,8 @@ class Line:
         self.coordinate2=coordinate2
 
     def getSlope(self):
+        if self.xB == self.xA:
+            self.xB=self.xB - 1
         slope=(self.yB-self.yA)/(self.xB-self.xA)
         return slope
     
@@ -94,17 +96,69 @@ def findIntersections(Line1,Line2,debug,image):
 
     return xIntersection,yIntersection
 
-image2=np.array(Image.open('thirdtest.jpeg').resize((400,400)))
-testImage=np.array(Image.open('thirdtest.jpeg').resize((400,400)))
+def correctData(corners):
+    dataArray=[]
+    if corners[1][0][0] > corners[0][0][0] + 5:
+        #if the array if filled by incrementing the x direction first instead of y
+        print("the data is being reworked")
+        for j in range(42,49):
+            for i in range(0,7):
+                dataArray.append(corners[j-i*7])
+        correctedData=np.array(dataArray)
+    else: 
+        correctedData=corners
+    
+    return correctedData
+
+
+image2=np.array(Image.open('thirdTest.jpeg').resize((400,400)))
+testImage=np.array(Image.open('thirdTest.jpeg').resize((400,400)))
 grayImage = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
+grayImage2 = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
 
 retval, corners = cv2.findChessboardCorners(grayImage, (nline, ncol), None)
+correctedData=correctData(corners)
 if (retval):
     print("there is a board")
 else:
     print("no board")
 
-fnl = cv2.drawChessboardCorners(grayImage, (nline, ncol), corners, retval)
+fnl = cv2.drawChessboardCorners(grayImage2, (nline, ncol), corners, retval)
+fnlcorrected = cv2.drawChessboardCorners(grayImage, (nline, ncol), correctedData, retval)
+
+print(corners)
+print("now corrected data")
+print(correctedData)
+cv2.imshow('boardcv2',fnl)
+cv2.imshow('boardcorrected',fnlcorrected)
+corners=correctedData
+
+for i in range(49):
+    x=int(corners[i][0][0])
+    y=int(corners[i][0][1])
+    cv2.circle(image2,(x,y),2,(0,0,255),3)
+
+print(corners[0][0][0])
+print(correctedData[0][0][0])
+cv2.rectangle(image2,(int(corners[0][0][0]),int(corners[0][0][1])),(int(corners[8][0][0]),int(corners[8][0][1])),(0,255,0),2)
+"""
+horizontalsArray=[]
+for j in range(0,7):
+    horizontalsArray.append(Line(image2, int(corners[j][0][1]),int(corners[j][0][0]),int(corners[j+42][0][1]),int(corners[j+42][0][0]),10,490,"Y"))
+for horizontal in horizontalsArray:
+   Line.drawLines(horizontal)
+verticalsArray=[]
+indexArray=[0,7,14,21,28,35,42]
+for index in indexArray:
+    verticalsArray.append(Line(image2, int(corners[index][0][1]),int(corners[index][0][0]),int(corners[index+6][0][1]),int(corners[index+6][0][0]),10,490,"X"))
+for vertical in verticalsArray:
+    Line.drawLines(vertical)
+
+while True:
+    cv2.imshow('test',image2)
+    if cv2.waitKey(1) & 0xff == ord('q'):
+        break
+"""
 
 cv2.namedWindow('board')
 cv2.setMouseCallback('board',mouseClick)
@@ -181,8 +235,8 @@ for i in range(8):
         interDuet2=findIntersections(horizontalsArray[j+1], verticalsArray[i+1],  1, testImage)
         duetArray=[interDuet1,interDuet2]
         coordinates.append(duetArray)
-print(coordinates)
-print(len(coordinates))
+#print(coordinates)
+#print(len(coordinates))
 
 for i in range(9):
     for j in range(9):
@@ -199,3 +253,4 @@ while True:
     cv2.imshow('boardcv2',fnl)
     if cv2.waitKey(1) & 0xff == ord('q'):
         break
+    
