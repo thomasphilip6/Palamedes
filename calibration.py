@@ -16,7 +16,6 @@ nline = 7
 ncol = 7
 evt=0
 
-
 def mouseClick(event,xPos,yPos,flags,params):
     global evt
     global xMouse
@@ -35,7 +34,6 @@ def mouseClick(event,xPos,yPos,flags,params):
         yMouse=yPos
         evt=event #is equal to 2 for the right click
                 
-
 class Line:
     def __init__(self, image, yB, xB, yA, xA, coordinate1, coordinate2, wanted):
         self.image=image
@@ -49,7 +47,9 @@ class Line:
 
     def getSlope(self):
         if self.xB == self.xA:
-            self.xB=self.xB - 1
+           self.xB=self.xB - 1
+        if self.yB == self.yA:
+           self.yB=self.yB - 1
         slope=(self.yB-self.yA)/(self.xB-self.xA)
         return slope
     
@@ -98,21 +98,31 @@ def findIntersections(Line1,Line2,debug,image):
 
 def correctData(corners):
     dataArray=[]
-    if corners[1][0][0] > corners[0][0][0] + 5:
+    if corners[1][0][0] > corners[0][0][0] + 5 and corners[1][0][1]<200:
         #if the array if filled by incrementing the x direction first instead of y
-        print("the data is being reworked")
+        print("case 1 : data is being reworked")
         for j in range(42,49):
             for i in range(0,7):
                 dataArray.append(corners[j-i*7])
         correctedData=np.array(dataArray)
+
+    elif corners[1][0][0] < corners[0][0][0] + 5 and corners[0][0][1] >200:
+        print("case 2 : data is being reworked")
+        jArray=[6,5,4,3,2,1,0]
+        for j in jArray:
+            for i in range(0,7):
+                dataArray.append(corners[j+i*7])
+        correctedData=np.array(dataArray)
+
     else: 
         correctedData=corners
+        print("case 3 : no work on data")
     
     return correctedData
 
 
-image2=np.array(Image.open('thirdTest.jpeg').resize((400,400)))
-testImage=np.array(Image.open('thirdTest.jpeg').resize((400,400)))
+image2=np.array(Image.open('empty.jpeg').resize((400,400)))
+testImage=np.array(Image.open('empty.jpeg').resize((400,400)))
 grayImage = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
 grayImage2 = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
 
@@ -141,24 +151,6 @@ for i in range(49):
 print(corners[0][0][0])
 print(correctedData[0][0][0])
 cv2.rectangle(image2,(int(corners[0][0][0]),int(corners[0][0][1])),(int(corners[8][0][0]),int(corners[8][0][1])),(0,255,0),2)
-"""
-horizontalsArray=[]
-for j in range(0,7):
-    horizontalsArray.append(Line(image2, int(corners[j][0][1]),int(corners[j][0][0]),int(corners[j+42][0][1]),int(corners[j+42][0][0]),10,490,"Y"))
-for horizontal in horizontalsArray:
-   Line.drawLines(horizontal)
-verticalsArray=[]
-indexArray=[0,7,14,21,28,35,42]
-for index in indexArray:
-    verticalsArray.append(Line(image2, int(corners[index][0][1]),int(corners[index][0][0]),int(corners[index+6][0][1]),int(corners[index+6][0][0]),10,490,"X"))
-for vertical in verticalsArray:
-    Line.drawLines(vertical)
-
-while True:
-    cv2.imshow('test',image2)
-    if cv2.waitKey(1) & 0xff == ord('q'):
-        break
-"""
 
 cv2.namedWindow('board')
 cv2.setMouseCallback('board',mouseClick)
