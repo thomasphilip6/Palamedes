@@ -82,6 +82,18 @@ def findCell(image,name):
     xCase1,yCase1=coordinates[indexWanted][1]
     cv2.rectangle(image,(xCase,yCase),(xCase1,yCase1),(0,255,0),2)
 
+def spotCell(xSpot,ySpot,cellsCords,cellsLabels):
+    #go threw each cell
+    cell=""
+    for i in range(0,65):
+        xLowerLeft,yLowerLeft=cellsCords[i][0]
+        xUpperRight,yUpperRight=cellsCords[i][1]
+        if xSpot > xLowerLeft and xSpot < xUpperRight and ySpot < yLowerLeft and ySpot > yUpperRight:
+            cell = cellsLabels[i]
+            break
+    return cell 
+
+
 def findIntersections(Line1,Line2,debug,image):
     a1=Line.getSlope(Line1)
     a2=Line.getSlope(Line2)
@@ -252,4 +264,6 @@ def calibration(imageToCalibrate):
     return coordinates,cells
 
 data,labels=calibration('empty.jpeg')
+answer=spotCell(310,80,data,labels)
 print(data)
+print(answer)
