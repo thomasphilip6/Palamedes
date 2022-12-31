@@ -3,7 +3,7 @@
 #include <math.h>
 
 
-Servo myservo;
+Servo myServo;
 
 //pins
 int servoPin = 11;
@@ -49,12 +49,11 @@ double x = 10.0;
 double y = 10.0;
 double L1 = 228; // L1 = 228mm
 double L2 = 136.5; // L2 = 136.5mm
-double theta1, theta2, phi, z;
+double theta1, theta2, z;
 
 
 const float theta1AngleToSteps = 44.444444;
 const float theta2AngleToSteps = 35.555555;
-const float phiAngleToSteps = 10;
 const float zDistanceToSteps = 100;
 
 
@@ -70,21 +69,19 @@ void setup() {
   pinMode(Z_MAX_PIN, INPUT_PULLUP);
 
   // Stepper motors max speed
-  stepper1.setMaxSpeed(4000);
+  stepper1.setMaxSpeed(2000);
   stepper1.setAcceleration(2000);
-  stepper2.setMaxSpeed(4000);
+  stepper2.setMaxSpeed(2000);
   stepper2.setAcceleration(2000);
-  stepper3.setMaxSpeed(4000);
+  stepper3.setMaxSpeed(2000);
   stepper3.setAcceleration(2000);
-  stepper4.setMaxSpeed(4000);
-  stepper4.setAcceleration(2000);
 
-  gripperServo.attach(11, 600, 2500);
+  myServo.attach(11, 600, 2500);
   // initial servo value - open gripper
-  data[6] = 180;
-  gripperServo.write(data[6]);
+  data[3] = 180;
+  myServo.write(data[3]);
   delay(1000);
-  data[5] = 100;
+  data[2] = 100;
   homing();
 }
 
@@ -99,23 +96,28 @@ void loop() {
       content = content.substring(index + 1); //Remove the number from the string
     }
     /*
-     data[0] - SAVE button status **NOT NEEDED**
-     data[1] - RUN button status **NOT NEEDED**
-     data[2] - Joint 1 angle
-     data[3] - Joint 2 angle
-     data[4] - Joint 3 angle
-     data[5] - Z position
-     data[6] - Gripper value
-     data[7] - Speed value
-     data[8] - Acceleration value
+     data[0] - Joint 1 angle
+     data[1] - Joint 2 angle
+     data[2] - Z position
+     data[3] - Gripper value
+     data[4] - Speed value  **NOT NEEDED CONSTANT VALUE**
+     data[5] - Acceleration value **NOT NEEDED CONSTANT VALUE**
     */
-      // If SAVE button is pressed, store the data into the appropriate arrays
-    if (data[0] == 1) {
-      theta1Array[positionsCounter] = data[2] * theta1AngleToSteps; //store the values in steps = angles * angleToSteps variable
-      theta2Array[positionsCounter] = data[3] * theta2AngleToSteps;
-      phiArray[positionsCounter] = data[4] * phiAngleToSteps;
-      zArray[positionsCounter] = data[5] * zDistanceToSteps;
-      gripperArray[positionsCounter] = data[6];
-      positionsCounter++;
     }
+    stepper1.moveTo(data[0]);
+    stepper2.moveTo(data[1]);
+    stepper3.moveTo(data[2]);
+      while (stepper1.currentPosition() != data[0] || stepper2.currentPosition() != theta2Array[i] || stepper3.currentPosition() != phiArray[i] || stepper4.currentPosition() != zArray[i]) {
+        stepper1.run();
+        stepper2.run();
+        stepper3.run();
+        stepper4.run();
+      }
+    // change speed and acceleration while running the program, now we just set it at max values
+    stepper1.setSpeed(2000);
+    stepper2.setSpeed(2000);
+    stepper3.setSpeed(2000);
+    stepper1.setAcceleration(2000);
+    stepper2.setAcceleration(2000);
+    stepper3.setAcceleration(2000);
   }
