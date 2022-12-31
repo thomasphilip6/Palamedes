@@ -82,6 +82,8 @@ def findCell(image,name):
     xCase1,yCase1=coordinates[indexWanted][1]
     cv2.rectangle(image,(xCase,yCase),(xCase1,yCase1),(0,255,0),2)
 
+    return xCase,yCase,xCase1,yCase1
+
 def spotCell(xSpot,ySpot,cellsCords,cellsLabels):
     #go threw each cell
     cell=""
@@ -262,8 +264,10 @@ def calibration(imageToCalibrate):
             break
 
     return coordinates,cells
-
+#un-comment to test the program
+"""
 data,labels=calibration('empty.jpeg')
 answer=spotCell(310,80,data,labels)
 print(data)
 print(answer)
+"""
