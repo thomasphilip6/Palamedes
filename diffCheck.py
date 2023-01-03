@@ -8,26 +8,6 @@ from numpy import asarray
 import glob
 import os
 
-#Load the model
-print("Loading the Neural Network Model...")
-model=SentenceTransformer('clip-ViT-B-32')
-#it takes a lot of time tho
-
-threshold=53
-board='empty.jpeg'
-boardWitness=np.array(Image.open('empty.jpeg').resize((400,400)))
-image0=np.array(Image.open('position0.jpg').resize((400,400)))
-image1=np.array(Image.open('position1.jpg').resize((400,400)))
-image2=np.array(Image.open('position2.jpg').resize((400,400)))
-image3=np.array(Image.open('position3.jpg').resize((400,400)))
-image4=np.array(Image.open('position4.jpg').resize((400,400)))
-
-move1=np.array(Image.open('move1.jpg').resize((400,400)))
-move2=np.array(Image.open('move2.jpg').resize((400,400)))
-
-coordinates, cells = calibration(board)
-counter=0
-
 class imageDifference:
     def __init__(self,coordinates,cells,emptyBoard,emptyBoardData,image1,image2):
         self.coordinates=coordinates
@@ -36,6 +16,16 @@ class imageDifference:
         self.emptyBoardData=emptyBoardData
         self.image1=image1
         self.image2=image2
+
+    def load(self):
+        #Load the model
+        print("Loading the Neural Network Model...")
+        global model
+        model=SentenceTransformer('clip-ViT-B-32')
+        global threshold
+        global counter
+        counter=0
+        threshold=53
 
     def AIcheck(self,cell=""):
         global counter
@@ -58,12 +48,8 @@ class imageDifference:
         text = model.encode(['ROIA','ROIB'])
 
         cos_scores = util.cos_sim(firstImage,secondImage)
-        """
-        cos_scores=str(cos_scores[0][0])
-        cos_scores=cos_scores.replace('tensor(','')
-        cos_scores=cos_scores.replace(')','')
-        """
         print(cos_scores)
+
         if (cos_scores*100) < thresholdDown:
             move=True
             remark="score under 87 : real Move "
@@ -110,31 +96,50 @@ class imageDifference:
                         print(cell)
                         print("")
                         diffArray.append(cell)
-                        cv2.rectangle(image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
-                        cv2.rectangle(image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+                        cv2.rectangle(self.image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+                        cv2.rectangle(self.image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
                 else:
                     print("There is a difference at : ")
                     print(score)
                     print(cell)
                     print("")
                     diffArray.append(cell)
-                    cv2.rectangle(image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
-                    cv2.rectangle(image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+                    cv2.rectangle(self.image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+                    cv2.rectangle(self.image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
         return diffArray
 
 #creating an instance
-move1=imageDifference(coordinates,cells,board,boardWitness,image0,image1)
-move1.checkEveryCell()
-"""
-move1.AIcheck("A1")
-move1.AIcheck("E2")
-move1.AIcheck("D4")
-"""
-print("press x to quit")
+def localTest():
+    board='empty.jpeg'
+    boardWitness=np.array(Image.open('empty.jpeg').resize((400,400)))
+    image0=np.array(Image.open('position0.jpg').resize((400,400)))
+    image1=np.array(Image.open('position1.jpg').resize((400,400)))
+    image2=np.array(Image.open('position2.jpg').resize((400,400)))
+    #image3=np.array(Image.open('position3.jpg').resize((400,400)))
+    #image4=np.array(Image.open('position4.jpg').resize((400,400)))
+    #move1=np.array(Image.open('move1.jpg').resize((400,400)))
+    #move2=np.array(Image.open('move2.jpg').resize((400,400)))
 
-while True:
-    cv2.imshow('Image1',image0)
-    cv2.imshow('Image2',image1)
-    if cv2.waitKey(1) & 0xff ==ord('x'):
-        break
+    coordinates, cells = calibration(board)
+    move1=imageDifference(coordinates,cells,board,boardWitness,image0,image1)
+    move2=imageDifference(coordinates,cells,board,boardWitness,image1,image2)
+    move1.load()
+    move1.checkEveryCell()
+    #move2.checkEveryCell()
+    """
+    move1.AIcheck("A1")
+    move1.AIcheck("E2")
+    move1.AIcheck("D4")
+    """
+    print("press x to quit")
+
+    while True:
+        cv2.imshow('Image1',image0)
+        cv2.imshow('Image2',image1)
+        if cv2.waitKey(1) & 0xff ==ord('x'):
+            break
+        
+#comment or uncomment to run a test
+#localTest()
+
 
