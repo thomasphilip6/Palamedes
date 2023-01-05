@@ -1,7 +1,38 @@
 import numpy as np
+from numpy import asarray
+import cv2
+from PIL import Image
+from diffCheck import checkRessemblance, buildROI, checkEveryCell
+from calibration import calibration, findCell, spotCell
+from skimage.metrics import structural_similarity
+
+def start():
+    
+    global my_Color
+    global op_Color
+    my_Color = 2 #We'll have to be careful with that 
+    # 1=white and 2=black
+    #and we'll do 0 = empty
+    if my_Color == 1:
+        op_Color = 2
+    else:
+        op_Color = 1
+
+    global board
+    board =np.zeros((64,2),dtype=int)
+    #64 cells with 2 infos in each: color + type
+    global letters 
+    letters=["A","B","C","D","E","F","G","H"]   
+    numbers=["1","2","3","4","5","6","7","8"]
+
+    #the global board with the letters to easily translate names to index
+    global cells
+    cells=[]
+    for letter in letters:
+        for number in numbers:
+            cells.append(letter + number)
 
 
-def start(board):
     z=0
     for j in range(1,9):
         board [z][0] = my_Color
@@ -17,14 +48,15 @@ def start(board):
         board [z][1] = j
         z+=1
 """
-8/1 = tower
-2/7 = horse
+little reminder
+8/1 = rock
+2/7 = knight
 3/6 = bishop
 4 = queen
 5 = king 
 9 to 16 = pawn 
 """
-def printTheBoard(board,letters):
+def printTheBoard():
     print("      ", end="")
     for z in range (1,9):
         print(z,"     ", end="")
@@ -45,7 +77,7 @@ def printTheBoard(board,letters):
             print("\r")
 
 
-def readMove(board, p1, p2):
+def readMove(p1, p2):
     #I've got 3 infos : previous position, new position or empty 
     if board[p1][0]==0:
         #this cell was previously empty so this is now the position of the opponent
@@ -75,7 +107,7 @@ def readMove(board, p1, p2):
     board[newCell]=pieceMoved
     board[isNowEmpty]=[0][0] 
         
-def writeMove(board,p1,p2):
+def writeMove(p1,p2):
     newCell=p2
     isNowEmpty=p1
     pieceMoved=board[p1]
@@ -88,38 +120,88 @@ def writeMove(board,p1,p2):
     board[newCell]=pieceMoved
     board[isNowEmpty]=[0][0]    
 
-        
+def translateCellToIndex(diffArray):
+    p1 = cells.index(str(diffArray[0]))
+    p2 = cells.index(str(diffArray[1]))
+    return p1, p2
+
+
+def mainMovesDiff(diffArray):
+    p1,p2 = translateCellToIndex(diffArray)
+    #this whole part only consider the perfect result with two differences no more no less
+    #so we'll make sure everything works properly before those line   
+    readMove(p1, p2)
+
+def mainMovesApi(movesApi):#movesAPI would need to be an array with the 2 mocements cells
+    startPos,endPos = translateCellToIndex(movesApi)
+    #with this configuration I would need in [0] the start and in [1] the end of my movements
+    writeMove(startPos, endPos)
+
+def getBoard():
+    return board
+
+def tell_move_to_move(round):
+    print("the system sucks!!!")
+    
+    
+    if round==0:
+        start()
+    elif round==1: #no switch case in python sorry
+        newMoves=["A7","A6"]
+        mainMovesDiff(newMoves)
+    elif round==2: #no switch case in python sorry
+        newMoves=["A2","A4"]
+        mainMovesApi(newMoves)
+    elif round==1: #no switch case in python sorry
+        newMoves=["C7","C4"]
+        mainMovesDiff(newMoves)
+    elif round ==3:
+        newMoves=["E2","D3"]
+        mainMovesApi(newMoves)
+    else:
+        print("me not happy the round count not working")
+    
+
+
+
+""" little fct to check if the programm is working
+def checkEveryCell(img1,img2):
+    
+    diffArray = ["A2","A4"]
+    return diffArray
+
+"""
+
+
 
 ###########
 #begining of the main code
 
-my_Color = 1 #We'll have to be careful with that
-# 1=white and 2=black
-if my_Color == 1:
-    op_Color = 2
-else:
-    op_Color = 1
+#def the pictures you want to compare
+image0 = cv2.imread("data\position0.jpg")
+image1 = cv2.imread("data\position1.jpg")
 
 
-
-#and we'll do 0 = empty 
-board =np.zeros((64,2),dtype=int)
-letters=["A","B","C","D","E","F","G","H"]
-start(board)
-printTheBoard(board,letters)
+start()
+printTheBoard()
+"""
+diffArray = checkEveryCell(image0,image1)
+p1,p2 = translateCellToIndex(diffArray)
+#this whole part only consider the perfect result with two differences no more no less
+#so we'll make sure everything works properly before those line   
 
 #now I would need to import the 2 squares that had movents on the picture differentiation
-p1=7
-p2=4
-
 #function to find the movemnt and who moved
-readMove(board,p1,p2)
+readMove(p1,p2)
 print("That's after 1 move:")
-printTheBoard(board, letters)
+printTheBoard()
 
-#now we need to learn how to write move from the API and robot on the system when input the piece that is moving
-startPos =8
-endPos = 4
-writeMove(board,startPos, endPos)
-print("After imad my deadly move...")
-printTheBoard(board, letters)
+#now we need to update or board regarding what the API want's to play 
+startPos =0
+endPos = 5
+writeMove(startPos, endPos)
+print("After I mad my deadly move...")
+printTheBoard()
+"""
+
+#start() to run with the interface
