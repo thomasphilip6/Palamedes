@@ -7,6 +7,7 @@ from PIL import Image
 from numpy import asarray
 import glob
 import os
+import time
 
 class imageDifference:
     def __init__(self,coordinates,cells,emptyBoard,emptyBoardData,image1,image2):
@@ -28,6 +29,7 @@ class imageDifference:
         threshold=53
 
     def AIcheck(self,cell=""):
+        print(cell)#to debug
         global counter
         name=""
         move=False
@@ -79,33 +81,61 @@ class imageDifference:
         return ROI1,ROI2
 
     def checkEveryCell(self):
+        allScores=[]
+        sortedArray=[]
         diffArray=[]
+        
         for cell in self.cells:
             ROI1,ROI2=self.buildROI(cell)
             score = self.checkRessemblance(ROI1, ROI2)
+            tupple=(cell,score)
+            allScores.append(tupple)
 
-            if score < threshold:
-                xLowerLeft, yLowerLeft,xUpperRight,yUpperRight=findCell(self.emptyBoardData,cell)
-                
-                if score > 40 and score < 55:
-                    move, remark = self.AIcheck(cell)
+        sortedArray=allScores
+        sortedArray.sort(key=lambda a: a[1])
+        print(sortedArray)
+
+        for result in allScores:
+            myCell,procesScore=result
+
+            if procesScore < threshold:
+                xLowerLeft, yLowerLeft,xUpperRight,yUpperRight=findCell(self.emptyBoardData,myCell)
+
+                if procesScore > 40 and procesScore < 55:
+                    move, remark = self.AIcheck(myCell)
                     print(remark)
                     if move==True:
                         print("There is a difference at : ")
-                        print(score)
-                        print(cell)
+                        print(procesScore)
+                        print(myCell)
                         print("")
-                        diffArray.append(cell)
+                        diffArray.append(myCell)
                         cv2.rectangle(self.image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
                         cv2.rectangle(self.image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
                 else:
                     print("There is a difference at : ")
-                    print(score)
-                    print(cell)
+                    print(procesScore)
+                    print(myCell)
                     print("")
-                    diffArray.append(cell)
+                    diffArray.append(myCell)
                     cv2.rectangle(self.image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
                     cv2.rectangle(self.image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+
+        if len(diffArray) < 2:
+
+            for i in range(0,9):
+                problemCell,problemScore=sortedArray[i]
+                xLowerLeft, yLowerLeft,xUpperRight,yUpperRight=findCell(self.emptyBoardData,problemCell)
+                move,remark = self.AIcheck(problemCell)
+                print(remark)
+                if move==True:
+                    print("There is a difference at : ")
+                    print(problemCell)
+                    print("")
+                    diffArray.append(problemCell)
+                    cv2.rectangle(self.image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+                    cv2.rectangle(self.image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
+
         return diffArray
 
 #creating an instance
@@ -141,5 +171,3 @@ def localTest():
         
 #comment or uncomment to run a test
 #localTest()
-
-
