@@ -1,5 +1,6 @@
 import tkinter as tk
 from moves import getBoard, tell_move_to_move
+import customtkinter
 
 
 
@@ -7,54 +8,55 @@ from moves import getBoard, tell_move_to_move
 ### we import every pictures ###
 def importImages():
     #first littleapproximation here I'm gonna define all of them as global, not the best move but should work for the moment
-
-
+    
     #an empty png of 64x64 to fill the empty cells with something
     global empty
     empty=tk.PhotoImage(file ="data/empty64.png")
-    empty=empty.subsample(1, 2)
+    empty=empty.subsample(1, 1)
     #subsample is to resize to be use in a button
 
     
     #black pieces
     global Bk
     Bk = tk.PhotoImage(file ="data/Bk.png")
-    Bk=Bk.subsample(1, 2)
+    Bk=Bk.subsample(1, 1)
     global Bb
     Bb = tk.PhotoImage(file ="data/Bb.png")
-    Bb=Bb.subsample(1, 2)
+    Bb=Bb.subsample(1, 1)
     global Bkn
     Bkn = tk.PhotoImage(file ="data/Bkn.png")
-    Bkn=Bkn.subsample(1, 2)
+    Bkn=Bkn.subsample(1, 1)
     global Bp
     Bp = tk.PhotoImage(file ="data/Bp.png")
-    Bp=Bp.subsample(1, 2)
+    Bp=Bp.subsample(1, 1)
     global Bq
     Bq = tk.PhotoImage(file ="data/Bq.png")
-    Bq=Bq.subsample(1, 2)
+    Bq=Bq.subsample(1, 1)
     global Br
     Br = tk.PhotoImage(file ="data/Br.png")
-    Br=Br.subsample(1, 2)
+    Br=Br.subsample(1, 1)
 
     #white pieces
     global Wb
     Wb = tk.PhotoImage(file ="data/Wb.png")
-    Wb=Wb.subsample(1, 2)
+    Wb=Wb.subsample(1, 1)
     global Wk
     Wk = tk.PhotoImage(file ="data/Wk.png")
-    Wk=Wk.subsample(1, 2)
+    Wk=Wk.subsample(1, 1)
     global Wkn
     Wkn=tk.PhotoImage(file ="data/Wkn.png")
-    Wkn=Wkn.subsample(1, 2)
+    Wkn=Wkn.subsample(1, 1)
     global Wp
     Wp = tk.PhotoImage(file ="data/Wp.png")
-    Wp=Wp.subsample(1, 2)
+    Wp=Wp.subsample(1, 1)
     global Wq
     Wq = tk.PhotoImage(file ="data/Wq.png")
-    Wq=Wq.subsample(1, 2)
+    Wq=Wq.subsample(1, 1)
     global Wr
     Wr = tk.PhotoImage(file ="data/Wr.png")
-    Wr=Wr.subsample(1, 2)
+    Wr=Wr.subsample(1, 1)
+
+    
 
     
 
@@ -185,6 +187,8 @@ def startNewGame(self):
     for i in range(0,64):
         boardCells["cell{0}".format(i)] ['image'] = newBoard[i]
     print("We should have a brand new empty board")
+    #yeah would be nice to have the pieces on the board
+    updateBoard(self)
 
     #self.window.mainloop()
     #I guesss we could have that little guy here but pretty sure that's not the proper way 
@@ -206,40 +210,51 @@ class PalamedesGUI:
 
     
     def __init__(self):
+        
+        #custom to be nice
+        customtkinter.set_appearance_mode("light")
+        customtkinter.set_default_color_theme("dark-blue")
 
         #def of our main window
-        self.window = tk.Tk()
-        self.window.geometry("800x800")
-        self.window.title("Palamedes Interface")
+        self.window = customtkinter.CTk()
+        self.window.geometry("800x900")
+        self.window.title("Palamedes The Chess Master")
 
-        global roundCounter
         self.roundCounter=0
         
+        self.title=customtkinter.CTkLabel(master=self.window, text="Palamedes The Chess Master",font=("Roboto",40) )
+        self.title.pack(pady=12,padx=10)
 
-        self.boardFrame = tk.Frame(self.window, height =100 , width = 100)
+
+        self.boardFrame = customtkinter.CTkFrame(master = self.window, height =100 , width = 100)
         #don't know why but height and width here don't change anything, weird...
         importImages()
 
         #now i need to create the first board
         createEmptyBoard(self.boardFrame)
-        self.boardFrame.pack()
+        #self.boardFrame.pack()
+        self.boardFrame.pack(padx=10,pady=10)
         """pack is maybe not the best one => look it up"""
         #it will stratch into the dimension
 
-        self.btn1 = tk.Button(
-        self.window,
+        self.nextBtn = customtkinter.CTkButton(
+        master =self.window,
         text="Next Player",
-        font=("Arial",18),
-        width = 10,
-        height = 2,
-        bg="black",
-        fg="White",
+        #font=("Arial",18),
+        #width = 10,
+        #height = 2,
+        #bg="black",
+        #fg="White",
         command = self.next_turn
         )
-        self.btn1.pack(padx=10,pady=10)
+        self.nextBtn.pack(padx=10,pady=10)
 
-        self.newBtn = tk.Button(self.window, text="Restart", command= self.reset_Game)
-        self.newBtn.place(x=200,y=200, height= 20, width=50)
+        self.reStartBtn = customtkinter.CTkButton(
+            master=self.window, 
+            text="Restart", 
+            command= self.reset_Game)
+        self.reStartBtn.pack(padx=10,pady=10)
+        #self.newBtn.place(x=200,y=200, height= 20, width=50)
         #that's how to place a button in a specific position
 
         
