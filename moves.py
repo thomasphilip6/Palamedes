@@ -2,12 +2,26 @@ import numpy as np
 from numpy import asarray
 import cv2
 from PIL import Image
-from diffCheck import checkRessemblance, buildROI, checkEveryCell
+#from diffCheck import checkRessemblance, buildROI, checkEveryCell
+from diffCheck import *
 from calibration import calibration, findCell, spotCell
 from skimage.metrics import structural_similarity
+from ChessEngine import startGame, restartGame, getWinMove, updateEngineBoard
+
+
+
+from sentence_transformers import SentenceTransformer, util
+
+import glob
+import os
+import time   
+
+import pickle
+
 
 def start():
-    
+
+
     global my_Color
     global op_Color
     my_Color = 2 #We'll have to be careful with that 
@@ -79,16 +93,14 @@ def printTheBoard():
 
 def readMove(p1, p2):
     #I've got 3 infos : previous position, new position or empty 
+
     if board[p1][0]==0:
         #this cell was previously empty so this is now the position of the opponent
         newCell=p1
         isNowEmpty=p2
         pieceMoved=board[p2]
         wasEaten=0
-
-
-        
-    elif board[p1][0]==my_Color:
+    elif board[p1][0]==op_Color:
         #means that he just ate my piece
         newCell=p1
         isNowEmpty=p2
@@ -106,14 +118,15 @@ def readMove(p1, p2):
     #now we make the changes to the game
     board[newCell]=pieceMoved
     board[isNowEmpty]=[0][0] 
+    return isNowEmpty,newCell
         
 def writeMove(p1,p2):
     newCell=p2
     isNowEmpty=p1
     pieceMoved=board[p1]
-    if board[p2][0]==op_Color:
+    if board[p2][0]==my_Color:
         wasEaten=board[p2]
-        """eatHim()"""#we would need a way to specify to the robot that he needs to first eat the little guy
+        #eatHim()#we would need a way to specify to the robot that he needs to first eat the 
     else:
         wasEaten=0
         
@@ -126,65 +139,140 @@ def translateCellToIndex(diffArray):
     return p1, p2
 
 
-def mainMovesDiff(diffArray):
-    p1,p2 = translateCellToIndex(diffArray)
+"""
+#we'll need that later on
+global firstTime
+firstTime = True
+
+def getDiffCheck():
+
+    differences=[]
+    if firstTime:
+        #fill with the appropriate image name
+        board='empty.jpeg'
+        #load images
+        boardWitness=np.array(Image.open('empty.jpeg').resize((400,400)))
+        image0=np.array(Image.open('position0.jpg').resize((400,400)))
+        image1=np.array(Image.open('position1.jpg').resize((400,400)))
+        #faire la calibration une seule fois :
+        coordinates, cells = calibration(board)
+        move1=imageDifference(coordinates,cells,board,boardWitness,image0,image1)
+        # from now on coordinates and cells are accessible with move1.cells and move1.coordinates
+        move1.load()
+        differences = move1.checkEveryCell()
+        firstTime=False
+
+    else:
+        #create object here
+        differences = object.checkEveryCell()
+
+    return differences
+"""
+def prep():
+    #fill with the appropriate image name
+    emptyBoard='data\empty.jpg'
+    #load images
+    boardWitness=np.array(Image.open('data\empty.jpg').resize((400,400)))
+    image0=np.array(Image.open('data\position0.jpg').resize((400,400)))
+    image1=np.array(Image.open('data\position1.jpg').resize((400,400)))
+    #faire la calibration une seule fois :
+    coordinates, cells = calibration(emptyBoard)
+    global move1
+    move1=imageDifference(coordinates,cells,emptyBoard,boardWitness,image0,image1)
+    # from now on coordinates and cells are accessible with move1.cells and move1.coordinates
+    move1.load()
+
+
+def mainMovesDiff():
+    #to update the player move
+    diffCells=move1.checkEveryCell()
+    #cell1=diffCells[0]
+    #cell2=diffCells[1]
+    print("the 2 cells diff:")
+    print(diffCells)
+    p1,p2 = translateCellToIndex(diffCells)
     #this whole part only consider the perfect result with two differences no more no less
     #so we'll make sure everything works properly before those line   
-    readMove(p1, p2)
+    startMove, endMove = readMove(p1, p2)#update moves
+    startCell=cells[startMove]
+    endCell=cells[endMove]
+    print("startCell & endCells",startCell,endCell  )
+    updateEngineBoard(startCell, endCell)#update engine
+    #this line is wrong find the mistake
 
-def mainMovesApi(movesApi):#movesAPI would need to be an array with the 2 mocements cells
-    startPos,endPos = translateCellToIndex(movesApi)
+def mainMovesApi():#movesAPI would need to be an array with the 2 mocements cells
+    #startPos,endPos = translateCellToIndex()
     #with this configuration I would need in [0] the start and in [1] the end of my movements
-    writeMove(startPos, endPos)
+    startPos,endPos = getWinMove()#getmove from engine and update engine
+    
+    st = cells.index(startPos)
+    end = cells.index(endPos)
+    writeMove(st, end)#update moves
+    printTheBoard()
 
 def getBoard():
     return board
 
 def tell_move_to_move(round):
-    print("the system sucks!!!")
-    
-    
-    if round==0:
-        start()
-    elif round==1: #no switch case in python sorry
-        newMoves=["A7","A6"]
-        mainMovesDiff(newMoves)
-    elif round==2: #no switch case in python sorry
-        newMoves=["A2","A4"]
-        mainMovesApi(newMoves)
-    elif round==1: #no switch case in python sorry
+
+    if round==0:#no switch case in python sorry
+        start()#start the moves.py board 
+        prep()#start the diff check and calibration
+        startGame()#Start the chess engine and stockfish the API
+
+    elif round==1: 
+        #the player first because he plays white so diff check first
+        mainMovesDiff()
+        printTheBoard()
+    elif round==2: 
+        #newMoves=["A2","A4"]
+        mainMovesApi()
+    else:
+        print("we're out of the round")
+    """
+    elif round==3: 
         newMoves=["C7","C4"]
         mainMovesDiff(newMoves)
-    elif round ==3:
+    elif round ==4:
         newMoves=["E2","D3"]
         mainMovesApi(newMoves)
-    else:
-        print("me not happy the round count not working")
+    """ 
     
 
 
 
-""" little fct to check if the programm is working
-def checkEveryCell(img1,img2):
-    
-    diffArray = ["A2","A4"]
-    return diffArray
 
+
+
+
+
+
+
+#start() #start the board
+
+### Proff of concept ### 
+"""
+#fill with the appropriate image name
+board='data\empty.jpeg'
+#load images
+boardWitness=np.array(Image.open('data\empty.jpeg').resize((400,400)))
+image0=np.array(Image.open('data\position0.jpg').resize((400,400)))
+image1=np.array(Image.open('data\position1.jpg').resize((400,400)))
+#faire la calibration une seule fois :
+coordinates, cells = calibration(board)
+move1=imageDifference(coordinates,cells,board,boardWitness,image0,image1)
+# from now on coordinates and cells are accessible with move1.cells and move1.coordinates
+move1.load()
 """
 
+
+#printTheBoard() #if needed to see if we started well
 
 
 ###########
 #begining of the main code
-
-#def the pictures you want to compare
-image0 = cv2.imread("data\position0.jpg")
-image1 = cv2.imread("data\position1.jpg")
-
-
-start()
-printTheBoard()
 """
+
 diffArray = checkEveryCell(image0,image1)
 p1,p2 = translateCellToIndex(diffArray)
 #this whole part only consider the perfect result with two differences no more no less

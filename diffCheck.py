@@ -140,11 +140,11 @@ class imageDifference:
 
 #creating an instance
 def localTest():
-    board='empty.jpeg'
-    boardWitness=np.array(Image.open('empty.jpeg').resize((400,400)))
-    image0=np.array(Image.open('position0.jpg').resize((400,400)))
-    image1=np.array(Image.open('position1.jpg').resize((400,400)))
-    image2=np.array(Image.open('position2.jpg').resize((400,400)))
+    board='data\empty.jpg'
+    boardWitness=np.array(Image.open('data\empty.jpg').resize((400,400)))
+    image0=np.array(Image.open('data\position0.jpg').resize((400,400)))
+    image1=np.array(Image.open('data\position1.jpg').resize((400,400)))
+    #image2=np.array(Image.open('position2.jpg').resize((400,400)))
     #image3=np.array(Image.open('position3.jpg').resize((400,400)))
     #image4=np.array(Image.open('position4.jpg').resize((400,400)))
     #move1=np.array(Image.open('move1.jpg').resize((400,400)))
@@ -152,7 +152,7 @@ def localTest():
 
     coordinates, cells = calibration(board)
     move1=imageDifference(coordinates,cells,board,boardWitness,image0,image1)
-    move2=imageDifference(coordinates,cells,board,boardWitness,image1,image2)
+    #move2=imageDifference(coordinates,cells,board,boardWitness,image1,image2)
     move1.load()
     move1.checkEveryCell()
     #move2.checkEveryCell()

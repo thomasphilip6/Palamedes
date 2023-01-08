@@ -1,7 +1,20 @@
 import tkinter as tk
 from moves import getBoard, tell_move_to_move
 import customtkinter
+import numpy as np
+from numpy import asarray
+from PIL import Image
 
+
+from sentence_transformers import SentenceTransformer, util
+from calibration import calibration, findCell, spotCell
+from skimage.metrics import structural_similarity
+from numpy import asarray
+import glob
+import os
+import time   
+
+import pickle
 
 
 
@@ -165,7 +178,7 @@ def getBoard():#this a test getBoard
 
 def updateBoard(self):
 
-    print(self.roundCounter)
+    #print(self.roundCounter)
     tell_move_to_move(self.roundCounter)
     newBoard=translateToPic(getBoard())
     #print (newBoard)
@@ -212,7 +225,7 @@ class PalamedesGUI:
     def __init__(self):
         
         #custom to be nice
-        customtkinter.set_appearance_mode("light")
+        customtkinter.set_appearance_mode("dark")
         customtkinter.set_default_color_theme("dark-blue")
 
         #def of our main window
@@ -264,11 +277,9 @@ class PalamedesGUI:
         
 
     def next_turn(self):
-        print("Hello dumb ass!!!")
         updateBoard(self)
     
     def reset_Game(self):
-        print("That's where all started!!!")
         self.roundCounter=0
         startNewGame(self)
 

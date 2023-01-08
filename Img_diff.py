@@ -52,6 +52,16 @@ def contours(procImg, Oimg):
             cv2.drawContours(Oimg, [c], -1, (0, 255, 0), 2)
             cv2.circle(Oimg, (cX, cY), 2, (255, 0, 0), -1)
             #the 3 int is for the size of the dot
+        else:
+            M = cv2.moments(c)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            #this time we don't save the data
+
+            # draw the contour and center of the shape on the image
+            cv2.drawContours(Oimg, [c], -1, (0, 0, 255), 2)
+            cv2.circle(Oimg, (cX, cY), 2, (255, 0, 0), -1)
+            #the 3 int is for the size of the dot
 
     return Oimg, send
 
@@ -91,7 +101,7 @@ def printDiffInfo(img1, img2,gray, blur, diff, thresh, dilate, finalImg, send, d
 
 
 ### run this code to try it out###
-"""
+
 #define size of images:
 width = 400
 height = 400
@@ -101,9 +111,10 @@ height = 400
 img1 = cv2.imread("data\position0.jpg")
 img1 = cv2.resize(img1,(width,height))
 
-img2 = cv2.imread("data\position3.jpg")
+img2 = cv2.imread("data\position1.jpg")
 img2 = cv2.resize(img2,(width,height))
-
+OriginalImg2=img2.copy()
+#just to make sure I can show it at the end!
 
 gray, blur, diff, thresh, dilate = preProces(img1, img2)
 
@@ -112,5 +123,4 @@ finalImg, send = contours(dilate, img2)
 print("Do you want to debug and see every processing step? \n 1 for Yes \n 0 for no")
 debug = int(input())
 
-printDiffInfo(img1, img2,gray, blur, diff, thresh, dilate, finalImg, send, debug)
-"""
+printDiffInfo(img1, OriginalImg2,gray, blur, diff, thresh, dilate, finalImg, send, debug)
