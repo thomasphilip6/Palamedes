@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from numpy import asarray
+import pickle
 
 letters=["A","B","C","D","E","F","G","H"]
 numbers=["1","2","3","4","5","6","7","8"]
@@ -77,13 +78,22 @@ class Line:
         cv2.line(self.image, (x2,y2) , (x1,y1), (0,255,255),2 )
 
 def findCell(image,name):
+    #either we run calibration or we just open the data
+    """
+    with open('calibrationData.pkl','rb') as v:
+            coordinates=pickle.load(v)
+            cells=pickle.load(v)
+    """
+    
     indexWanted=cells.index(str(name))
     xCase,yCase=coordinates[indexWanted][0]
     xCase1,yCase1=coordinates[indexWanted][1]
     cv2.rectangle(image,(xCase,yCase),(xCase1,yCase1),(0,255,0),2)
 
+    return xCase,yCase,xCase1,yCase1
+
 def spotCell(xSpot,ySpot,cellsCords,cellsLabels):
-    #go threw each cell
+    #go through each cell
     cell=""
     for i in range(0,65):
         xLowerLeft,yLowerLeft=cellsCords[i][0]
@@ -153,9 +163,9 @@ def calibration(imageToCalibrate):
     #displays the visual confirmation for the correction of data
     fnl = cv2.drawChessboardCorners(grayImage2, (nline, ncol), corners, retval)
     fnlcorrected = cv2.drawChessboardCorners(grayImage, (nline, ncol), correctedData, retval)
-    print(corners)
-    print("now corrected data")
-    print(correctedData)
+    #print(corners)
+    #print("now corrected data")
+    #print(correctedData)
     cv2.imshow('boardcv2',fnl)
     cv2.imshow('boardcorrected',fnlcorrected)
     corners=correctedData
@@ -244,7 +254,7 @@ def calibration(imageToCalibrate):
             interDuet2=findIntersections(horizontalsArray[j+1], verticalsArray[i+1],  1, testImage)
             duetArray=[interDuet1,interDuet2]
             coordinates.append(duetArray)
-
+    #only used to debug
     for i in range(9):
         for j in range(9):
             findIntersections(horizontalsArray[i], verticalsArray[j], 1, image2)
@@ -263,7 +273,27 @@ def calibration(imageToCalibrate):
 
     return coordinates,cells
 
+def writePickle(image):
+    data,labels=calibration(image)
+    with open('calibrationData.pkl','wb') as f:
+        pickle.dump(data,f)
+        pickle.dump(labels,f)
+    
+    #the following code show how to get the data out
+    """
+    with open('calibrationData.pkl','rb') as v:
+        coordinates=pickle.load(v)
+        cells=pickle.load(v)
+
+    print(coordinates)
+    print(cells)
+"""
+
+#writePickle('empty.jpeg')
+#un-comment to test the program
+"""
 data,labels=calibration('empty.jpeg')
 answer=spotCell(310,80,data,labels)
 print(data)
 print(answer)
+"""
