@@ -49,16 +49,16 @@ def start():
 
     z=0
     for j in range(1,9):
-        board [z][0] = my_Color
+        board [z][0] = op_Color
         board [z][1] = j
         z+=1
-        board [z][0] = my_Color
+        board [z][0] = op_Color
         board [z][1] = j+8
         z+=5 #they are already 0 everywhere no need to fill them again
-        board [z][0] = op_Color 
+        board [z][0] = my_Color 
         board [z][1] = j+8
         z+=1
-        board [z][0] = op_Color 
+        board [z][0] = my_Color 
         board [z][1] = j
         z+=1
 """
@@ -100,7 +100,7 @@ def readMove(p1, p2):
         isNowEmpty=p2
         pieceMoved=board[p2]
         wasEaten=0
-    elif board[p1][0]==op_Color:
+    elif board[p1][0]==my_Color:
         #means that he just ate my piece
         newCell=p1
         isNowEmpty=p2
@@ -124,7 +124,7 @@ def writeMove(p1,p2):
     newCell=p2
     isNowEmpty=p1
     pieceMoved=board[p1]
-    if board[p2][0]==my_Color:
+    if board[p2][0]==op_Color:
         wasEaten=board[p2]
         #eatHim()#we would need a way to specify to the robot that he needs to first eat the 
     else:
