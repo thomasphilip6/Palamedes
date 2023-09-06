@@ -93,7 +93,7 @@ def findCell(image,name):
     return xCase,yCase,xCase1,yCase1
 
 def spotCell(xSpot,ySpot,cellsCords,cellsLabels):
-    #go threw each cell
+    #go through each cell
     cell=""
     for i in range(0,65):
         xLowerLeft,yLowerLeft=cellsCords[i][0]
@@ -254,7 +254,7 @@ def calibration(imageToCalibrate):
             interDuet2=findIntersections(horizontalsArray[j+1], verticalsArray[i+1],  1, testImage)
             duetArray=[interDuet1,interDuet2]
             coordinates.append(duetArray)
-
+    #only used to debug
     for i in range(9):
         for j in range(9):
             findIntersections(horizontalsArray[i], verticalsArray[j], 1, image2)

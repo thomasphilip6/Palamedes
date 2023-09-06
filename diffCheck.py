@@ -121,6 +121,7 @@ class imageDifference:
                     cv2.rectangle(self.image1,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
                     cv2.rectangle(self.image2,(xLowerLeft,yLowerLeft),(xUpperRight,yUpperRight),(0,0,255),2)
 
+        #if we have less than two differences, we send the 8 lowest scores to the AI
         if len(diffArray) < 2:
 
             for i in range(0,9):
