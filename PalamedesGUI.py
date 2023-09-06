@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import *
 from moves import getBoard, tell_move_to_move
 import customtkinter
 import numpy as np
@@ -13,10 +14,57 @@ from numpy import asarray
 import glob
 import os
 import time   
-
 import pickle
+import serial
+import keyboard
 
+#chatGPT idea to use threading
+#import threading
 
+comPort = 'COM7' 
+ser = serial.Serial(comPort,baudrate = 2000000, timeout = 1)
+
+mode = 1
+
+#global variables
+homeJ1= 8000
+homeJ2= 9000
+homeJ3= 500
+everyoneHome= "J1"+str(homeJ1)+"J2"+str(homeJ2)+"J3"+str(homeJ3)
+max_Time_Response=5 #how many seconds we wait in a loop before killing it
+
+class robot:
+    J1max=16000
+    J1min=50
+    J2max=10000
+    J2min=50
+    J3max=5000
+    J3min=50
+    Xmax=1000
+    Xmin=-1000
+    Ymax=1000
+    Ymin=-1000
+    Zmax=1000
+    Zmin=0
+    plus_minus_btn=10#when you press + or - it will do the written jump
+
+    #thoseare the start position 
+    J1 = 8000 
+    J2 = 7466
+    J3 = 10
+    X = 0
+    Y = 0
+    Z = 10
+    grip = 0
+    gripBtnText = "Open gripper"
+    moveJarray = [[0,0,0],["0000","0000","0000"]]
+    goToarray= [["+","+","+"],["0","0","0"],["0000","0000","0000"]]#first the sign, then the number, then the zeroes to complete
+    toSave = [[] for _ in range(64)]
+    toSaveIndex=0
+
+    toSave=[]
+
+#that will be to define the window 0 is chess mode & 1 is robot
 
 ### we import every pictures ###
 def importImages():
@@ -160,21 +208,6 @@ little reminder
 9 to 16 = pawn 
 """
 
-#I think we don't need that anymore
-"""
-def getBoard():#this a test getBoard
-    #can't access yet to the other part so we can try here
-    newBoard=[
-        [ 2, 1 ],[ 2 , 9 ],[ 0, 0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 , 9 ],[ 1, 1 ],
-        [ 2, 2 ],[ 2 ,10 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 ,10 ],[ 1, 2 ],
-        [ 2 ,3 ],[ 2 ,11 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 ,11 ],[ 1, 3 ],
-        [ 2 ,4 ],[ 2 ,12 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 ,12 ],[ 1, 4 ],
-        [ 2 ,5 ],[ 2 ,13 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 ,13 ],[ 1, 5 ],
-        [ 2, 6 ],[ 2 ,14 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 ,14 ],[ 1, 6 ],
-        [ 2 ,7 ],[ 2 ,15 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 1 ,15 ],[ 1, 7 ],
-        [ 2 ,8 ],[ 2, 16 ],[ 0 ,0 ],[ 0 ,0 ],[ 0 ,0 ],[ 0, 0 ],[ 1 ,16 ],[ 1, 8 ]]
-    return newBoard
-"""
 
 def updateBoard(self):
 
@@ -203,43 +236,225 @@ def startNewGame(self):
     #yeah would be nice to have the pieces on the board
     updateBoard(self)
 
-    #self.window.mainloop()
-    #I guesss we could have that little guy here but pretty sure that's not the proper way 
-"""
-def littest():
-    print("Press 1 to go to next round")
-    next = int(input())
 
-    if next==1:
-        updateBoard()
-        print("here you go with a beautiful board")
+
+def controlMenu(self):
+
+    #forget stuff
+    self.title.pack_forget()
+    self.main_fame.pack_forget()
+
+    #remember stuff
+    self.title2.pack(padx=12,pady=10, side=tk.TOP,fill=tk.BOTH) 
+    self.secondary_frame.pack()
+
+
+def gameMenu(self):
+    
+    #forget stuff first
+    self.title2.pack_forget()
+    self.secondary_frame.pack_forget()
+
+    #remember stuff 
+    self.title.pack(pady=12,padx=10)
+    self.main_fame.pack(padx=10,pady=10)
+
+
+def fillThe0(x):
+    if x>= 10000:
+        return ""
+    elif x>=1000:
+        return "0"
+    elif x >=100:
+        return "00"
+    elif x >= 10:
+        return "000"
     else:
-        print("sad you should have said yes... i'm gonna cry now")
+        return "0000"
 
+def antiLoop(start_time):
+    if keyboard.is_pressed('d'):
+        print("Key 'd' pressed. Stopping...")
+        return  1# Exit the loop and stop the code
+    elif time.time() - start_time > max_Time_Response: 
+        print("Timeout: 'ready' signal not received within 5 seconds")
+        return  1 # Exit the function on timeout
+    else:
+        return 0
+
+def receive_response(expect_ready=False):
+        start_time=time.time()
+
+        while True:
+            print("Listening to Arduino...")
+
+            if antiLoop(start_time):
+                print("Exiting due to timeout or button press.")
+                return None  # Exit the function on timeout or button press
+
+            input_data = ser.readline().decode().strip()
+            print(input_data)
+
+            if input_data == "J":
+                continue
+
+            if input_data != "":
+                return int(input_data)
+
+            if expect_ready and input_data == "ready":
+                # Update GUI
+                break
+
+
+    
+def sendToArduino(ArdString):
+    command=ArdString
+    command=command+'\r'
+    ser.write(command.encode())
+
+    start_time = time.time()  # Record the start time
+
+    while True:
+        print("we're sending to Arduino.......")
+
+        if antiLoop(start_time): #we check for d buton or too long loop
+            print("We're killing the loop!")
+            return # Exit the function on timeout or button press
+
+        line = ser.readline().decode().strip()
+        if line == "ready":
+            print("We received an answer, Arduino is ready")
+            return  # End of data, exit the loop
+
+        
+
+
+#we need this one to listen for the updated version of J1, J2, J3 after sending XYZ coordinate
+def sendAndListen(stringToSend):
+    command=stringToSend+'\r'
+    ser.write(command.encode())
+    check=0
+    #start_time = time.time()  # Record the start time
+
+
+    robot.J1 = receive_response()
+    robot.J2 = receive_response()
+    receive_response(expect_ready=True)
+    """
+    while True:
+        print("we're listening to Arduino.......")
+
+        if antiLoop(start_time): #we check for d buton or too long loop
+            print("We're killing the loop!")
+            return # Exit the function on timeout or button press
+
+        input=ser.readline().decode().strip()
+        print(input)
+        if(input=="J"):
+            break
+
+    while True:
+        print("we're listening to Arduino.......")
+
+        if antiLoop(start_time): #we check for d buton or too long loop
+            print("We're killing the loop!")
+            return # Exit the function on timeout or button press
+
+
+
+        input=ser.readline().decode().strip()
+        print(input)
+        if(input!=""):
+            #print(input)
+            toSave=int(input)
+            robot.J1=toSave
+            break
+    while True:
+        print("we're listening to Arduino.......")
+
+        #safety measure
+        if antiLoop(start_time): #we check for d buton or too long loop
+            print("We're killing the loop!")
+            return # Exit the function on timeout or button press
+
+        input=ser.readline().decode().strip()
+        print(input)
+        if(input!=""):
+            toSave=int(input)
+            robot.J2=toSave
+            break
+    
+    while True:
+        print("we're listening to Arduino.......")
+
+        #safety measure
+        if antiLoop(start_time): #we check for d buton or too long loop
+            print("We're killing the loop!")
+            return # Exit the function on timeout or button press
+
+
+        input=ser.readline().decode().strip()
+        print(input)
+        if(input=="ready"):
+
+            break
 """
+    
+    
+
+
+def askForReset():
+    command="reset"+'\r'
+    ser.write(command.encode())
+
+    start_time = time.time()  # Record the start time
+
+    while True:
+        print("we're reseting.......")
+
+        if antiLoop(start_time): #we check for d buton or too long loop
+            print("We're killing the loop!")
+            return 0 # Exit the function on timeout or button press
+
+        line = ser.readline().decode().strip()
+        if line == "ready":
+            return 1
+
+        
 
 
 class PalamedesGUI:
 
-    
+#mode 0 will be with the chess game and mode 1 will be with the robot controls
+
     def __init__(self):
         
         #custom to be nice
-        customtkinter.set_appearance_mode("dark")
-        customtkinter.set_default_color_theme("dark-blue")
+        customtkinter.set_appearance_mode("light")
+        customtkinter.set_default_color_theme("blue")
 
         #def of our main window
         self.window = customtkinter.CTk()
-        self.window.geometry("800x900")
-        self.window.title("Palamedes The Chess Master")
-
+        self.window.geometry("800x950")
         self.roundCounter=0
-        
-        self.title=customtkinter.CTkLabel(master=self.window, text="Palamedes The Chess Master",font=("Roboto",40) )
+        self.window.title("Palamedes The Chess Master")   
+
+
+
+        ###First page
+
+        #title1  
+        self.title=customtkinter.CTkLabel(self.window, text="Palamedes The Chess Master",font=("Roboto",40) )
         self.title.pack(pady=12,padx=10)
+        #j'ai pas compris pk mais j'arrive pas à mettre mon titre dans le main_frame
 
+        #A full window with everythin in it to make it appear & disapear easily
+        self.main_fame = customtkinter.CTkFrame(master=self.window)
+        self.main_fame.pack(pady=12, padx=12)
 
-        self.boardFrame = customtkinter.CTkFrame(master = self.window, height =100 , width = 100)
+        
+       
+        self.boardFrame = customtkinter.CTkFrame(master = self.main_fame, height =100 , width = 100)
         #don't know why but height and width here don't change anything, weird...
         importImages()
 
@@ -251,31 +466,238 @@ class PalamedesGUI:
         #it will stratch into the dimension
 
         self.nextBtn = customtkinter.CTkButton(
-        master =self.window,
+        master =self.main_fame,
         text="Next Player",
-        #font=("Arial",18),
-        #width = 10,
-        #height = 2,
-        #bg="black",
-        #fg="White",
         command = self.next_turn
         )
         self.nextBtn.pack(padx=10,pady=10)
 
         self.reStartBtn = customtkinter.CTkButton(
-            master=self.window, 
-            text="Restart", 
+            master=self.main_fame, 
+            text="Start", 
             command= self.reset_Game)
         self.reStartBtn.pack(padx=10,pady=10)
-        #self.newBtn.place(x=200,y=200, height= 20, width=50)
         #that's how to place a button in a specific position
 
+        self.ControlBtn = customtkinter.CTkButton(
+            master=self.main_fame, 
+            text="Advanced Controls", 
+            command= self.open_Control)
+        self.ControlBtn.pack(padx=10,pady=10)
+
+
+        ###second page
+
+        #title2 
+        self.title2=customtkinter.CTkLabel(master=self.window, text="Palamedes Controller",font=("Roboto",40) )
+        self.title2.pack(padx=12, pady=10, side=tk.TOP)
+
+        #A full window with everythin in it to make it appear & disapear easily
+        self.secondary_frame = customtkinter.CTkFrame(master=self.window, fg_color = 'transparent')
+        self.secondary_frame.pack(fill=tk.BOTH)    
+
+        self.gameModeBtn = customtkinter.CTkButton(
+            master=self.secondary_frame, 
+            text="Game Mode", 
+            command= self.open_GameMode)
+        self.gameModeBtn.pack(padx=10, pady=10,  side=tk.TOP)
+
+        #left side side with forward
+        self.forward_frame = customtkinter.CTkFrame(self.secondary_frame, corner_radius=10, fg_color = 'transparent')
+        self.forward_frame.pack(padx=12, pady=10, side=tk.LEFT)
+
+        self.forward_label = customtkinter.CTkLabel(self.forward_frame, text="Forward Kinematics",font=customtkinter.CTkFont(size=20, weight="bold") )
+        self.forward_label.pack(padx=12, pady=10, side=tk.TOP)
+
+
+        #top with J1
+        self.J1_currentVar = tk.StringVar()
+        self.J1_currentVar.set(robot.J1)#this one will have to get away later on it's just here for test
+
+        self.J1_frame = customtkinter.CTkFrame(self.forward_frame, fg_color = 'transparent')
+        self.J1_frame.pack()
+
+        self.J1_label = customtkinter.CTkLabel(self.J1_frame,text ="J1",  font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'darkblue')
+        self.J1_label.pack(padx=20, pady=10, side=tk.LEFT)
+
+        self.J1_current = customtkinter.CTkLabel(self.J1_frame,textvariable = self.J1_currentVar, font=customtkinter.CTkFont(size=20))
+        self.J1_current.pack(padx=10, pady=10, side=tk.TOP)
+
+        self.J1_plusBtn = customtkinter.CTkButton(self.J1_frame, text="-", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J1_minus)
+        self.J1_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J1_writeBox = customtkinter.CTkEntry(self.J1_frame,placeholder_text =" ... ",justify = CENTER, corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.J1_writeBox.pack(ipadx=5, ipady=5,  side=tk.LEFT)
+
+        self.J1_minusBtn = customtkinter.CTkButton(self.J1_frame, text="+", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J1_plus)
+        self.J1_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+
+        #top with J2
+        self.J2_currentVar = tk.StringVar()
+        self.J2_currentVar.set(robot.J2)
+
+        self.J2_frame = customtkinter.CTkFrame(self.forward_frame, fg_color = 'transparent')
+        self.J2_frame.pack()
+
+        self.J2_label = customtkinter.CTkLabel(self.J2_frame,text ="J2",  font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'red')
+        self.J2_label.pack(padx=20, pady=10, side=tk.LEFT)
+
+        self.J2_current = customtkinter.CTkLabel(self.J2_frame,textvariable = self.J2_currentVar, font=customtkinter.CTkFont(size=20))
+        self.J2_current.pack(padx=10, pady=10, side=tk.TOP)
+
+        self.J2_plusBtn = customtkinter.CTkButton(self.J2_frame, text="-", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 0, command = self.J2_minus)
+        self.J2_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J2_writeBox = customtkinter.CTkEntry(self.J2_frame,justify= CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.J2_writeBox.pack(ipadx=5, ipady=5,  side=tk.LEFT)
+
+        self.J2_minusBtn = customtkinter.CTkButton(self.J2_frame, text="+", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 0, command = self.J2_plus)
+        self.J2_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+
+
+        #top with J3
+        self.J3_currentVar = tk.StringVar()
+        self.J3_currentVar.set(robot.J3)#this one will have to get away later on it's just here for test
+
+        self.J3_frame = customtkinter.CTkFrame(self.forward_frame, fg_color = 'transparent')
+        self.J3_frame.pack()
+
+        self.J3_label = customtkinter.CTkLabel(self.J3_frame,text ="J3",  font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'green')
+        self.J3_label.pack(padx=20, pady=10, side=tk.LEFT)
+
+        self.J3_current = customtkinter.CTkLabel(self.J3_frame,textvariable = self.J3_currentVar, font=customtkinter.CTkFont(size=20))
+        self.J3_current.pack(padx=10, pady=10, side=tk.TOP)
+
+        self.J3_plusBtn = customtkinter.CTkButton(self.J3_frame, text="-", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J3_minus)
+        self.J3_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J3_writeBox = customtkinter.CTkEntry(self.J3_frame,justify = CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.J3_writeBox.pack(ipadx=5, ipady=5,  side=tk.LEFT)
+
+        self.J3_minusBtn = customtkinter.CTkButton(self.J3_frame, text="+", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J3_plus)
+        self.J3_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+
+        #send button 
+        self.forward_send = customtkinter.CTkButton(self.forward_frame, text="Move Joints", font=customtkinter.CTkFont(size=20), corner_radius = 10, command = self.forward_send)
+        self.forward_send.pack(padx=10, pady=10,  side=tk.BOTTOM)
+
+
+
+        ###middle butons frame
+        self.mid_frame = customtkinter.CTkFrame(self.secondary_frame, corner_radius=10, fg_color = 'transparent')
+        self.mid_frame.pack(padx=10, pady=10, side=tk.LEFT)
+
+
+
+        """
+        #reset button by chatGPT
+        self.canvasReset = tk.Canvas(self.mid_frame, width=100, height=100)
+        self.canvasReset.pack()
+        # Create the round button by drawing an oval shape
+        self.resetBtn = self.canvasReset.create_oval(10, 10, 90, 90, fill="red")
+        self.resetBtn_label = self.canvasReset.create_text(50, 50, text="Reset", fill="white", font=("Helvetica", 12))
+        self.canvasReset.tag_bind(self.resetBtn, "<Button-1>", self.reset)
+        """
+        #reset button by me
+        self.resetBtn = customtkinter.CTkButton(self.mid_frame, text="Reset", font=customtkinter.CTkFont(size=20), text_color="white",corner_radius = 10, command = self.reset, fg_color="#a61414", hover_color="darkred")
+        self.resetBtn.pack(padx=10, pady=10,ipady=20, side=tk.BOTTOM)
+
         
 
+
+        #manage gripper 
+        self.grip_state = tk.StringVar()
+        self.grip_state.set(robot.gripBtnText)
+
+        self.gripperBtn = customtkinter.CTkButton(self.mid_frame,textvariable = self.grip_state, corner_radius= 20, command= self.move_grip, font=customtkinter.CTkFont(size=20))
+        self.gripperBtn.pack(padx=10, pady=10, side= TOP)
+
+        #save position
+        self.savePositionBtn = customtkinter.CTkButton(self.mid_frame, text="Save current position", corner_radius= 20, command= self.save_position, font=customtkinter.CTkFont(size=20))
+        self.savePositionBtn.pack(padx=10, pady=10, side = BOTTOM)
+
+
+
+        ###reverse kinematics
+        self.reverse_frame = customtkinter.CTkFrame(self.secondary_frame, corner_radius=10, fg_color = 'transparent')
+        self.reverse_frame.pack(padx=10, pady=10, side=tk.LEFT)
+
+        self.reverse_label = customtkinter.CTkLabel(self.reverse_frame, text="Reverse Kinematics",font=customtkinter.CTkFont(size=20, weight="bold") )
+        self.reverse_label.pack(padx=10, pady=10, side=tk.TOP)
+
+        #XYZ frame
+        self.Xyz_frame = customtkinter.CTkFrame(self.reverse_frame, corner_radius=10, fg_color = 'transparent')
+        self.Xyz_frame.pack(padx=10, pady=10, side=tk.TOP)
+
+        #for X
+        self.X_currentVar = tk.StringVar()
+        self.X_currentVar.set(robot.X)#this one will have to get away later on it's just here for test
+
+        self.X_frame = customtkinter.CTkFrame(self.Xyz_frame, corner_radius=10, fg_color = 'transparent')
+        self.X_frame.pack(padx=10, pady=10, side=tk.LEFT)
+
+        self.X_label = customtkinter.CTkLabel(self.X_frame, text="X",font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'darkblue' )
+        self.X_label.pack(padx = 10, pady = 10, side = tk.TOP)
+
+        self.X_current = customtkinter.CTkLabel(self.X_frame,textvariable = self.X_currentVar, font=customtkinter.CTkFont(size=20))
+        #self.X_current.pack(padx=10, pady=10)
+
+        self.X_writeBox = customtkinter.CTkEntry(self.X_frame,justify = CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.X_writeBox.pack(ipadx=5, ipady=5,  side=tk.BOTTOM)
+
+
+        #for Y
+        self.Y_currentVar = tk.StringVar()
+        self.Y_currentVar.set(robot.Y)#this one will have to get away later on it's just here for test
+
+
+        self.Y_frame = customtkinter.CTkFrame(self.Xyz_frame, corner_radius=10, fg_color = 'transparent')
+        self.Y_frame.pack(padx=10, pady=10, side=tk.LEFT)
+
+        self.Y_label = customtkinter.CTkLabel(self.Y_frame, text="Y",font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'red' )
+        self.Y_label.pack(padx = 10, pady = 10, side = tk.TOP)
+
+        self.Y_current = customtkinter.CTkLabel(self.Y_frame,textvariable = self.Y_currentVar, font=customtkinter.CTkFont(size=20))
+        #self.Y_current.pack(padx=10, pady=10)
+
+        self.Y_writeBox = customtkinter.CTkEntry(self.Y_frame,justify = CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.Y_writeBox.pack(ipadx=5, ipady=5,  side=tk.BOTTOM)
+
+        #for Z
+        self.Z_currentVar = tk.StringVar()
+        self.Z_currentVar.set(robot.Z)#this one will have to get away later on it's just here for test
+
+        self.Z_frame = customtkinter.CTkFrame(self.Xyz_frame, corner_radius=10, fg_color = 'transparent')
+        self.Z_frame.pack(padx=10, pady=10, side=tk.LEFT)
+
+        self.Z_label = customtkinter.CTkLabel(self.Z_frame, text="Z",font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'green' )
+        self.Z_label.pack(padx = 10, pady = 10, side = tk.TOP)
+
+        self.Z_current = customtkinter.CTkLabel(self.Z_frame,textvariable = self.Z_currentVar, font=customtkinter.CTkFont(size=20))
+        #self.Z_current.pack(padx=10, pady=10)
+
+        self.Z_writeBox = customtkinter.CTkEntry(self.Z_frame,justify = CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.Z_writeBox.pack(ipadx=5, ipady=5,  side=tk.BOTTOM)
+
+        #move to position button
+        self.position_send = customtkinter.CTkButton(self.reverse_frame, text="Move to Position", font=customtkinter.CTkFont(size=20), corner_radius = 10, command = self.positionSend)
+        self.position_send.pack(padx=10, pady=10, side=BOTTOM)
+
+
+        #Hide the second page 
+        if mode == 0:
+            self.title2.pack_forget()
+            self.secondary_frame.pack_forget()
+        else:
+            self.title.pack_forget()
+            self.main_fame.pack_forget()
+        
         self.window.mainloop()
 
-        
-
+    #main page button
     def next_turn(self):
         updateBoard(self)
     
@@ -283,6 +705,361 @@ class PalamedesGUI:
         self.roundCounter=0
         startNewGame(self)
 
+    def open_Control(self):
+        controlMenu(self)
+
+    #Second page button
+    
+    def open_GameMode(self):
+        gameMenu(self)
+    
+    def J1_minus(self):
+        if robot.J1 - robot.plus_minus_btn>robot.J1min:
+            robot.J1 = robot.J1 - robot.plus_minus_btn
+            self.J1_currentVar.set(robot.J1)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+
+
+            sendToArduino(stringToSend)
+
+
+        else:
+            print("You're trying to go lower than 0 not possible")
+        
+
+
+
+    def J1_plus(self):
+        if robot.J1 + robot.plus_minus_btn <robot.J1max:#here we have to write the max range 
+            robot.J1 = robot.J1 + robot.plus_minus_btn
+            self.J1_currentVar.set(robot.J1)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+
+
+
+            sendToArduino(stringToSend)
+        else:
+            print("You're trying to go too high")
+        
+
+    
+    def J2_minus(self):
+        if robot.J2 - robot.plus_minus_btn >robot.J2min:
+            robot.J2 = robot.J2 - robot.plus_minus_btn
+            self.J2_currentVar.set(robot.J2)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+
+        else:
+            print("You're trying to go lower than 0 not possible")
+        
+
+
+    def J2_plus(self):
+        if robot.J2 + robot.plus_minus_btn <robot.J2max:#here we have to write the max range 
+            robot.J2 = robot.J2 + robot.plus_minus_btn
+            self.J2_currentVar.set(robot.J2)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+        else:
+            print("You're trying to go too high")
+        
+
+    def J3_minus(self):
+        if robot.J3 - robot.plus_minus_btn > robot.J3min:
+            robot.J3 = robot.J3 - robot.plus_minus_btn
+            self.J3_currentVar.set(robot.J3)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+
+        else:
+            print("You're trying to go lower than 0 not possible")
+        
+
+
+    def J3_plus(self):
+        if robot.J3 + robot.plus_minus_btn <robot.J3max:#here we have to write the max range 
+            robot.J3 = robot.J3 + robot.plus_minus_btn
+            self.J3_currentVar.set(robot.J3)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+        else:
+            print("You're trying to go too high")
+        
+
+
+
+    def forward_send(self):
+        # Check and update J1
+        if self.J1_writeBox.get():
+            if robot.J1min <= int(self.J1_writeBox.get()) < robot.J1max:
+                robot.J1 = int(self.J1_writeBox.get())
+                robot.moveJarray[0][0] = robot.J1
+                self.J1_writeBox.delete(0, tk.END)
+                self.J1_currentVar.set(robot.J1)
+            else:
+                print("J1 is not in the valid range (0-999)")
+        else:
+            print("J1 entry is empty")
+
+        # Check and update J2
+        if self.J2_writeBox.get():
+            if robot.J2min <= int(self.J2_writeBox.get()) < robot.J2max:
+                robot.J2 = int(self.J2_writeBox.get())
+                robot.moveJarray[0][1] = robot.J2
+                self.J2_writeBox.delete(0, tk.END)
+                self.J2_currentVar.set(robot.J2)
+            else:
+                print("J2 is not in the valid range (0-999)")
+        else:
+            print("J2 entry is empty")
+
+        # Check and update J3
+        if self.J3_writeBox.get():
+            if robot.J3min <= int(self.J3_writeBox.get()) < robot.J3max:
+                robot.J3 = int(self.J3_writeBox.get())
+                robot.moveJarray[0][2] = robot.J3
+                self.J3_writeBox.delete(0, tk.END)
+                self.J3_currentVar.set(robot.J3)
+            else:
+                print("J3 is not in the valid range (0-999)")
+        else:
+            print("J3 entry is empty")
+
+        
+        print("we send J1, J2 & J3 to the robot")
+        print("J1:", end = " ")
+        print(robot.J1)
+        print("J2:", end = " ")
+        print(robot.J2)
+        print("J3:", end = " ")
+        print(robot.J3)
+
+        self.window.update_idletasks()
+        #sending to arduino part
+        robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+        robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+        robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+        print("here is the matrix:")
+        print(robot.moveJarray)
+        stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+        print(stringToSend)
+        sendToArduino(stringToSend)
+        
+
+    def move_grip(self):
+
+        if robot.grip==0:
+            robot.grip=1
+            robot.gripBtnText="Close Gripper"
+            print("We're opening the Grip")
+            sendToArduino("G0")
+            
+        else:
+            robot.grip=0
+            robot.gripBtnText="Open Gripper"
+            print("We're closing the grip")
+            sendToArduino("G1")
+    
+        self.grip_state.set(robot.gripBtnText)
+        self.window.update_idletasks()
+
+
+    def save_position(self):
+        robot.toSave.append([robot.J1, robot.J2, robot.J3])
+        print("the current array: ")
+        print(robot.toSave)
+
+    
+    def positionSend(self):
+        print("the go to position in XYZ coordinate")
+
+        # Check and prepare X
+        if self.X_writeBox.get():
+            Xinput= self.X_writeBox.get()
+            robot.X=Xinput
+
+            if Xinput[0]=="-":
+                robot.goToarray[0][0]="-"
+                Xinput= Xinput[1:]#now we kick out the sign
+            elif Xinput[0]=="+":
+                robot.goToarray[0][0]="+"
+                Xinput= Xinput[1:]#now we kick out the sign
+            else:
+                robot.goToarray[0][0]="+"
+
+            
+            if robot.Xmin <= int(Xinput) < robot.Xmax:
+                robot.goToarray[1][0]=Xinput
+                robot.goToarray[2][0] = fillThe0(int(Xinput))
+                self.X_writeBox.delete(0, tk.END)
+            else:
+                print("X is not in the valid range (0-999)")
+        else:
+            print("X entry is empty")
+        
+
+        # Check and prepare Y
+        if self.Y_writeBox.get():
+            Yinput= self.Y_writeBox.get()
+            robot.Y=Yinput
+
+            if Yinput[0]=="-":
+                robot.goToarray[0][1]="-"
+                Yinput= Yinput[1:]#now we kick out the sign
+            elif Yinput[0]=="+":
+                robot.goToarray[0][1]="+"
+                Yinput= Yinput[1:]#now we kick out the sign
+            else:
+                robot.goToarray[0][1]="+"
+
+            
+            if robot.Ymin<= int(Yinput) < robot.Ymax:
+                robot.goToarray[1][1]=Yinput
+                robot.goToarray[2][1] = fillThe0(int(Yinput))
+                self.Y_writeBox.delete(0, tk.END)
+            else:
+                print("Y is not in the valid range (0-999)")
+        else:
+            print("Y entry is empty")
+
+
+        # Check and prepare Z
+        if self.Z_writeBox.get():
+            Zinput= self.Z_writeBox.get()
+            robot.Z=Zinput
+
+            robot.goToarray[0][2]="+"#just because Z has to be positive
+
+            if not Zinput[0].isdigit():
+                Zinput= Zinput[1:]#now we kick out the sign#if the fisrt char is not a digit remove it 
+            
+            if robot.Zmin <= int(Zinput) < robot.Zmax:
+                robot.J3=Zinput
+                robot.goToarray[1][2]=Zinput
+                robot.goToarray[2][2] = fillThe0(int(Zinput))
+                self.Z_writeBox.delete(0, tk.END)
+            else:
+                print("Z is not in the valid range (0-999)")
+        else:
+            print("Z entry is empty")
+        
+        print(robot.goToarray)
+        stringToSend = ""
+
+        indexArray=["X","Y","Z"]
+
+        for i in range(len(indexArray)):
+            stringToSend += indexArray[i] + robot.goToarray[0][i] + robot.goToarray[2][i] + robot.goToarray[1][i] # Concatenate the label and value
+
+        print(stringToSend)
+        sendAndListen(stringToSend)
+
+        self.J1_currentVar.set(robot.J1)
+        self.J2_currentVar.set(robot.J2)
+        self.J3_currentVar.set(robot.J3)
+        self.X_currentVar.set(robot.X)
+        self.Y_currentVar.set(robot.Y)
+        self.Z_currentVar.set(robot.Z)
+
+        self.window.update_idletasks()
+
+
+    
+    def reset(self):
+        if askForReset():
+            print("Emergency reset was activated we're bringing everyone Home!")
+            robot.J1=homeJ1
+            robot.J2=homeJ2
+            robot.J3=homeJ3
+
+            self.J1_currentVar.set(robot.J1)
+            self.J2_currentVar.set(robot.J2)
+            self.J3_currentVar.set(robot.J3)
+            self.window.update_idletasks()
+
+        else:
+            print("Arduino said no need for Homing!")
+        
 
 
 PalamedesGUI()
