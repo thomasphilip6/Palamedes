@@ -72,6 +72,13 @@ def updateEngineBoard(cell1,cell2):
     stockfish.set_fen_position(board.fen())#to send to stockfish the board
     print(board)
 
+def update_castling(cast):
+    if cast=="k":
+        board.push_san("0-0")
+    else:
+        board.push_san("0-0-0")
+    stockfish.set_fen_position(board.fen())#to send to stockfish the board
+    print(board)
 
 def getWinMove():
     bestMove= stockfish.get_best_move()

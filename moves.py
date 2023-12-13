@@ -63,7 +63,7 @@ def start():
         z+=1
 """
 little reminder
-8/1 = rock
+1/8 = rock
 2/7 = knight
 3/6 = bishop
 4 = queen
@@ -182,6 +182,63 @@ def prep():
     # from now on coordinates and cells are accessible with move1.cells and move1.coordinates
     move1.load()
 
+def check_castling(p1,p2,p3,p4):
+    pic_to_check= [p1,p2,p3,p4]
+    kingside=["H8","E8","G8","F8"]
+    qweenside=["A8","C8","E8","D8"]
+    side="0"
+    arrayToCheck=[]
+
+    for pic in pic_to_check:
+        if pic == kingside[O]:
+            side="k"
+            arrayToCheck=kingside
+    if side =="0":#
+        for pic in pic_to_check:
+            if pic == qweenside[O]:
+                side="q"
+                arrayToCheck=qweenside
+
+
+    if side=="0":
+        print("unexpected error, no king or qween side found")
+    
+    count=0
+    for pic in pic_to_check:
+        for square in arrayToCheck:
+            if pic== square:
+                count+=1
+
+    if  count==4:
+        print("we found a castling move")
+        update_castling(side)
+
+        if side=="q":
+            board[0][0]=0#couleurs, tower empty 
+            board[0][1]=0#pièce
+            board[4][0]=0#couleurs, king empty
+            board[4][1]=0#pièce
+
+            board[3][0]=op_Color
+            board[3][1]=1#number refering to the rock on the left, sorry for the magic number
+            board[2][0]=op_Color
+            board[2][1]=5#nb of the king
+
+        else:
+            board[7][0]=0#couleurs, tower empty 
+            board[7][1]=0#pièce
+            board[4][0]=0#couleurs, king empty
+            board[4][1]=0#pièce
+
+            board[5][0]=op_Color
+            board[5][1]=1#number refering to the rock on the left, sorry for the magic number
+            board[6][0]=op_Color
+            board[6][1]=5#nb of the king
+
+    else:
+        print("unexpected error, we didn't get a match with the castling")
+
+
 
 def mainMovesDiff():
     #to update the player move
@@ -190,15 +247,24 @@ def mainMovesDiff():
     #cell2=diffCells[1]
     print("the 2 cells diff:")
     print(diffCells)
-    p1,p2 = translateCellToIndex(diffCells)
-    #this whole part only consider the perfect result with two differences no more no less
-    #so we'll make sure everything works properly before those line   
-    startMove, endMove = readMove(p1, p2)#update moves
-    startCell=cells[startMove]
-    endCell=cells[endMove]
-    print("startCell & endCells",startCell,endCell  )
-    updateEngineBoard(startCell, endCell)#update engine
-    #this line is wrong find the mistake
+    if len(diffCells)==4:#4 difff should mean a castling move we'll check that out
+
+        p1,p2,p3,p4=check_castling(diffCells)
+        ####there is lot of stuff missing here
+    elif len(diffCells)==2:#that should be a regular move, check it
+        p1,p2 = translateCellToIndex(diffCells)
+        #this whole part only consider the perfect result with two differences no more no less
+        #so we'll make sure everything works properly before those line   
+        startMove, endMove = readMove(p1, p2)#update moves
+        startCell=cells[startMove]
+        endCell=cells[endMove]
+        print("startCell & endCells",startCell,endCell  )
+        updateEngineBoard(startCell, endCell)#update engine
+        #this line is wrong find the mistake
+    else:
+        print("Unexpected number of diff in mainMovesDiff")
+
+    
 
 def mainMovesApi():#movesAPI would need to be an array with the 2 mocements cells
     #startPos,endPos = translateCellToIndex()
@@ -213,13 +279,14 @@ def mainMovesApi():#movesAPI would need to be an array with the 2 mocements cell
 def getBoard():
     return board
 
+
+#avec le GUI on appelle la fct suivante pour aller chercher les images
 def tell_move_to_move(round):
 
     if round==0:#no switch case in python sorry
         start()#start the moves.py board 
         prep()#start the diff check and calibration
         startGame()#Start the chess engine and stockfish the API
-
     elif round==1: 
         #the player first because he plays white so diff check first
         mainMovesDiff()
@@ -229,67 +296,25 @@ def tell_move_to_move(round):
         mainMovesApi()
     else:
         print("we're out of the round")
+    
+    ###il va falloir faire un truc comme ça####
     """
-    elif round==3: 
-        newMoves=["C7","C4"]
-        mainMovesDiff(newMoves)
-    elif round ==4:
-        newMoves=["E2","D3"]
-        mainMovesApi(newMoves)
-    """ 
+    #Player is white and he is playing round 1 so impair == white
+    elif (round % 2 == 0):
+        #Human
+        mainMovesDiff()
+        printTheBoard()
+        #take a picture
+    else:
+        #Robot
+        mainMovesApi()
+        #take a picture 
+    """
+
+    
+    
     
 
 
 
 
-
-
-
-
-
-
-#start() #start the board
-
-### Proff of concept ### 
-"""
-#fill with the appropriate image name
-board='data\empty.jpeg'
-#load images
-boardWitness=np.array(Image.open('data\empty.jpeg').resize((400,400)))
-image0=np.array(Image.open('data\position0.jpg').resize((400,400)))
-image1=np.array(Image.open('data\position1.jpg').resize((400,400)))
-#faire la calibration une seule fois :
-coordinates, cells = calibration(board)
-move1=imageDifference(coordinates,cells,board,boardWitness,image0,image1)
-# from now on coordinates and cells are accessible with move1.cells and move1.coordinates
-move1.load()
-"""
-
-
-#printTheBoard() #if needed to see if we started well
-
-
-###########
-#begining of the main code
-"""
-
-diffArray = checkEveryCell(image0,image1)
-p1,p2 = translateCellToIndex(diffArray)
-#this whole part only consider the perfect result with two differences no more no less
-#so we'll make sure everything works properly before those line   
-
-#now I would need to import the 2 squares that had movents on the picture differentiation
-#function to find the movemnt and who moved
-readMove(p1,p2)
-print("That's after 1 move:")
-printTheBoard()
-
-#now we need to update or board regarding what the API want's to play 
-startPos =0
-endPos = 5
-writeMove(startPos, endPos)
-print("After I mad my deadly move...")
-printTheBoard()
-"""
-
-#start() to run with the interface

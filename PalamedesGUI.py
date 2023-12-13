@@ -21,50 +21,55 @@ import keyboard
 #chatGPT idea to use threading
 #import threading
 
-comPort = 'COM7' 
-ser = serial.Serial(comPort,baudrate = 2000000, timeout = 1)
+#comPort = 'COM11' 
+#ser = serial.Serial(comPort,baudrate = 2000000, timeout = 1)
 
+
+#that will be to define the window 0 is chess mode & 1 is robot
 mode = 1
 
 #global variables
-homeJ1= 8000
+homeJ1= 2000
 homeJ2= 9000
 homeJ3= 500
 everyoneHome= "J1"+str(homeJ1)+"J2"+str(homeJ2)+"J3"+str(homeJ3)
-max_Time_Response=5 #how many seconds we wait in a loop before killing it
+max_Time_Response=30 #how many seconds we wait in a loop before killing it
+#CellsArray = [[],[]]
+
 
 class robot:
-    J1max=16000
+    J1max=20000
     J1min=50
-    J2max=10000
+    J2max=20000
     J2min=50
-    J3max=5000
+    J3max=10000
     J3min=50
     Xmax=1000
     Xmin=-1000
     Ymax=1000
     Ymin=-1000
     Zmax=1000
-    Zmin=0
-    plus_minus_btn=10#when you press + or - it will do the written jump
+    Zmin=50
+    plus_minus_btn=50#when you press + or - it will do the written jump
+    plus_minus_btnB=200
 
     #thoseare the start position 
-    J1 = 8000 
-    J2 = 7466
-    J3 = 10
+    J1 = 2000
+    J2 = 9000
+    J3 = 500
     X = 0
     Y = 0
     Z = 10
-    grip = 0
+    grip = 1
     gripBtnText = "Open gripper"
-    moveJarray = [[0,0,0],["0000","0000","0000"]]
+    moveJarray = [[2000,9000,500],["0","0","00"]] #That's what i changed to upthe start Js
     goToarray= [["+","+","+"],["0","0","0"],["0000","0000","0000"]]#first the sign, then the number, then the zeroes to complete
     toSave = [[] for _ in range(64)]
     toSaveIndex=0
 
     toSave=[]
 
-#that will be to define the window 0 is chess mode & 1 is robot
+
 
 ### we import every pictures ###
 def importImages():
@@ -248,6 +253,9 @@ def controlMenu(self):
     self.title2.pack(padx=12,pady=10, side=tk.TOP,fill=tk.BOTH) 
     self.secondary_frame.pack()
 
+    self.window.geometry("850x700")
+
+
 
 def gameMenu(self):
     
@@ -258,6 +266,9 @@ def gameMenu(self):
     #remember stuff 
     self.title.pack(pady=12,padx=10)
     self.main_fame.pack(padx=10,pady=10)
+
+   
+    self.window.geometry("950x950")
 
 
 def fillThe0(x):
@@ -310,21 +321,19 @@ def receive_response(expect_ready=False):
 def sendToArduino(ArdString):
     command=ArdString
     command=command+'\r'
-    ser.write(command.encode())
+    ser.write(command.encode()) 
 
     start_time = time.time()  # Record the start time
 
     while True:
         print("we're sending to Arduino.......")
-
         if antiLoop(start_time): #we check for d buton or too long loop
             print("We're killing the loop!")
-            return # Exit the function on timeout or button press
-
+            break # Exit the function on timeout or button press
         line = ser.readline().decode().strip()
         if line == "ready":
             print("We received an answer, Arduino is ready")
-            return  # End of data, exit the loop
+            break  # End of data, exit the loop
 
         
 
@@ -340,65 +349,6 @@ def sendAndListen(stringToSend):
     robot.J1 = receive_response()
     robot.J2 = receive_response()
     receive_response(expect_ready=True)
-    """
-    while True:
-        print("we're listening to Arduino.......")
-
-        if antiLoop(start_time): #we check for d buton or too long loop
-            print("We're killing the loop!")
-            return # Exit the function on timeout or button press
-
-        input=ser.readline().decode().strip()
-        print(input)
-        if(input=="J"):
-            break
-
-    while True:
-        print("we're listening to Arduino.......")
-
-        if antiLoop(start_time): #we check for d buton or too long loop
-            print("We're killing the loop!")
-            return # Exit the function on timeout or button press
-
-
-
-        input=ser.readline().decode().strip()
-        print(input)
-        if(input!=""):
-            #print(input)
-            toSave=int(input)
-            robot.J1=toSave
-            break
-    while True:
-        print("we're listening to Arduino.......")
-
-        #safety measure
-        if antiLoop(start_time): #we check for d buton or too long loop
-            print("We're killing the loop!")
-            return # Exit the function on timeout or button press
-
-        input=ser.readline().decode().strip()
-        print(input)
-        if(input!=""):
-            toSave=int(input)
-            robot.J2=toSave
-            break
-    
-    while True:
-        print("we're listening to Arduino.......")
-
-        #safety measure
-        if antiLoop(start_time): #we check for d buton or too long loop
-            print("We're killing the loop!")
-            return # Exit the function on timeout or button press
-
-
-        input=ser.readline().decode().strip()
-        print(input)
-        if(input=="ready"):
-
-            break
-"""
     
     
 
@@ -418,6 +368,7 @@ def askForReset():
 
         line = ser.readline().decode().strip()
         if line == "ready":
+            print("We got a reset")
             return 1
 
         
@@ -435,7 +386,11 @@ class PalamedesGUI:
 
         #def of our main window
         self.window = customtkinter.CTk()
-        self.window.geometry("800x950")
+        if (mode==1): 
+            self.window.geometry("850x700")
+        else:
+            self.window.geometry("950x950")
+
         self.roundCounter=0
         self.window.title("Palamedes The Chess Master")   
 
@@ -518,19 +473,25 @@ class PalamedesGUI:
         self.J1_frame.pack()
 
         self.J1_label = customtkinter.CTkLabel(self.J1_frame,text ="J1",  font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'darkblue')
-        self.J1_label.pack(padx=20, pady=10, side=tk.LEFT)
+        self.J1_label.pack(padx=20, pady=10, side=tk.TOP)
 
         self.J1_current = customtkinter.CTkLabel(self.J1_frame,textvariable = self.J1_currentVar, font=customtkinter.CTkFont(size=20))
-        self.J1_current.pack(padx=10, pady=10, side=tk.TOP)
+        self.J1_current.pack(padx=10, pady=10, side=tk.BOTTOM)
 
-        self.J1_plusBtn = customtkinter.CTkButton(self.J1_frame, text="-", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J1_minus)
-        self.J1_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+        self.J1_minusBtnB = customtkinter.CTkButton(self.J1_frame, text="--", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J1_minusB)
+        self.J1_minusBtnB.pack(padx=5, pady=5,  side=tk.LEFT)
 
-        self.J1_writeBox = customtkinter.CTkEntry(self.J1_frame,placeholder_text =" ... ",justify = CENTER, corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.J1_minusBtn = customtkinter.CTkButton(self.J1_frame, text="-", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J1_minus)
+        self.J1_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J1_writeBox = customtkinter.CTkEntry(self.J1_frame,placeholder_text =" ... ",justify = CENTER, corner_radius = 15, width = 75,font=customtkinter.CTkFont(size=15))
         self.J1_writeBox.pack(ipadx=5, ipady=5,  side=tk.LEFT)
 
-        self.J1_minusBtn = customtkinter.CTkButton(self.J1_frame, text="+", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J1_plus)
-        self.J1_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+        self.J1_plusBtn = customtkinter.CTkButton(self.J1_frame, text="+", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J1_plus)
+        self.J1_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J1_plusBtnB = customtkinter.CTkButton(self.J1_frame, text="++", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J1_plusB)
+        self.J1_plusBtnB.pack(padx=5, pady=5,  side=tk.LEFT)
 
 
         #top with J2
@@ -541,19 +502,25 @@ class PalamedesGUI:
         self.J2_frame.pack()
 
         self.J2_label = customtkinter.CTkLabel(self.J2_frame,text ="J2",  font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'red')
-        self.J2_label.pack(padx=20, pady=10, side=tk.LEFT)
+        self.J2_label.pack(padx=20, pady=10, side=tk.TOP)
 
         self.J2_current = customtkinter.CTkLabel(self.J2_frame,textvariable = self.J2_currentVar, font=customtkinter.CTkFont(size=20))
-        self.J2_current.pack(padx=10, pady=10, side=tk.TOP)
+        self.J2_current.pack(padx=10, pady=10, side=tk.BOTTOM)
 
-        self.J2_plusBtn = customtkinter.CTkButton(self.J2_frame, text="-", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 0, command = self.J2_minus)
-        self.J2_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+        self.J2_minusBtnB = customtkinter.CTkButton(self.J2_frame, text="--", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 0, command = self.J2_minusB)
+        self.J2_minusBtnB.pack(padx=5, pady=5,  side=tk.LEFT)
 
-        self.J2_writeBox = customtkinter.CTkEntry(self.J2_frame,justify= CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.J2_minusBtn = customtkinter.CTkButton(self.J2_frame, text="-", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 0, command = self.J2_minus)
+        self.J2_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J2_writeBox = customtkinter.CTkEntry(self.J2_frame,justify= CENTER, placeholder_text =" ... ",corner_radius = 15, width = 75,font=customtkinter.CTkFont(size=15))
         self.J2_writeBox.pack(ipadx=5, ipady=5,  side=tk.LEFT)
 
-        self.J2_minusBtn = customtkinter.CTkButton(self.J2_frame, text="+", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 0, command = self.J2_plus)
-        self.J2_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+        self.J2_plusBtn = customtkinter.CTkButton(self.J2_frame, text="+", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 0, command = self.J2_plus)
+        self.J2_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J2_plusBtnB = customtkinter.CTkButton(self.J2_frame, text="++", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 0, command = self.J2_plusB)
+        self.J2_plusBtnB.pack(padx=5, pady=5,  side=tk.LEFT)
 
 
 
@@ -565,19 +532,25 @@ class PalamedesGUI:
         self.J3_frame.pack()
 
         self.J3_label = customtkinter.CTkLabel(self.J3_frame,text ="J3",  font=customtkinter.CTkFont(size=30, weight="bold"), text_color = 'green')
-        self.J3_label.pack(padx=20, pady=10, side=tk.LEFT)
+        self.J3_label.pack(padx=20, pady=10, side=tk.TOP)
 
         self.J3_current = customtkinter.CTkLabel(self.J3_frame,textvariable = self.J3_currentVar, font=customtkinter.CTkFont(size=20))
-        self.J3_current.pack(padx=10, pady=10, side=tk.TOP)
+        self.J3_current.pack(padx=10, pady=10, side=tk.BOTTOM)
 
-        self.J3_plusBtn = customtkinter.CTkButton(self.J3_frame, text="-", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J3_minus)
-        self.J3_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+        self.J3_minusBtnB = customtkinter.CTkButton(self.J3_frame, text="--", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J3_minusB)
+        self.J3_minusBtnB.pack(padx=5, pady=5,  side=tk.LEFT)
 
-        self.J3_writeBox = customtkinter.CTkEntry(self.J3_frame,justify = CENTER, placeholder_text =" ... ",corner_radius = 15, width = 50,font=customtkinter.CTkFont(size=15))
+        self.J3_minusBtn = customtkinter.CTkButton(self.J3_frame, text="-", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J3_minus)
+        self.J3_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J3_writeBox = customtkinter.CTkEntry(self.J3_frame,justify = CENTER, placeholder_text =" ... ",corner_radius = 15, width = 75,font=customtkinter.CTkFont(size=15))
         self.J3_writeBox.pack(ipadx=5, ipady=5,  side=tk.LEFT)
 
-        self.J3_minusBtn = customtkinter.CTkButton(self.J3_frame, text="+", font=customtkinter.CTkFont(size=20, weight="bold"), corner_radius = 200, width = 2, command = self.J3_plus)
-        self.J3_minusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+        self.J3_plusBtn = customtkinter.CTkButton(self.J3_frame, text="+", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J3_plus)
+        self.J3_plusBtn.pack(padx=5, pady=5,  side=tk.LEFT)
+
+        self.J3_plusBtnB = customtkinter.CTkButton(self.J3_frame, text="++", font=customtkinter.CTkFont(size=15, weight="bold"), corner_radius = 200, width = 2, command = self.J3_plusB)
+        self.J3_plusBtnB.pack(padx=5, pady=5,  side=tk.LEFT)
 
 
         #send button 
@@ -741,7 +714,33 @@ class PalamedesGUI:
             print("You're trying to go lower than 0 not possible")
         
 
+    def J1_minusB(self):
+            if robot.J1 - robot.plus_minus_btnB>robot.J1min:
+                robot.J1 = robot.J1 - robot.plus_minus_btnB
+                self.J1_currentVar.set(robot.J1)
+                self.window.update_idletasks()
 
+                #sending to arduino part
+                #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+                robot.moveJarray[0][0]=robot.J1
+                robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+                robot.moveJarray[0][1]=robot.J2
+                robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+                robot.moveJarray[0][2]=robot.J3
+                robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+
+                print("here is the matrix:")
+                print(robot.moveJarray)
+                stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+                print(stringToSend)
+
+
+                sendToArduino(stringToSend)
+
+
+            else:
+                print("You're trying to go lower than 0 not possible")
+        
 
     def J1_plus(self):
         if robot.J1 + robot.plus_minus_btn <robot.J1max:#here we have to write the max range 
@@ -768,11 +767,58 @@ class PalamedesGUI:
         else:
             print("You're trying to go too high")
         
+    def J1_plusB(self):
+            if robot.J1 + robot.plus_minus_btnB <robot.J1max:#here we have to write the max range 
+                robot.J1 = robot.J1 + robot.plus_minus_btnB
+                self.J1_currentVar.set(robot.J1)
+                self.window.update_idletasks()
 
+                #sending to arduino part
+                #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+                robot.moveJarray[0][0]=robot.J1
+                robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+                robot.moveJarray[0][1]=robot.J2
+                robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+                robot.moveJarray[0][2]=robot.J3
+                robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+                print("here is the matrix:")
+                print(robot.moveJarray)
+                stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+                print(stringToSend)
+
+
+
+                sendToArduino(stringToSend)
+            else:
+                print("You're trying to go too high")
+        
     
     def J2_minus(self):
         if robot.J2 - robot.plus_minus_btn >robot.J2min:
             robot.J2 = robot.J2 - robot.plus_minus_btn
+            self.J2_currentVar.set(robot.J2)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+
+        else:
+            print("You're trying to go lower than 0 not possible")
+        
+    def J2_minusB(self):
+        if robot.J2 - robot.plus_minus_btnB >robot.J2min:
+            robot.J2 = robot.J2 - robot.plus_minus_btnB
             self.J2_currentVar.set(robot.J2)
             self.window.update_idletasks()
 
@@ -816,11 +862,55 @@ class PalamedesGUI:
             sendToArduino(stringToSend)
         else:
             print("You're trying to go too high")
-        
+    
+    def J2_plusB(self):
+        if robot.J2 + robot.plus_minus_btnB <robot.J2max:#here we have to write the max range 
+            robot.J2 = robot.J2 + robot.plus_minus_btnB
+            self.J2_currentVar.set(robot.J2)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+        else:
+            print("You're trying to go too high")
 
     def J3_minus(self):
         if robot.J3 - robot.plus_minus_btn > robot.J3min:
             robot.J3 = robot.J3 - robot.plus_minus_btn
+            self.J3_currentVar.set(robot.J3)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+
+        else:
+            print("You're trying to go lower than 0 not possible")
+    
+    def J3_minusB(self):
+        if robot.J3 - robot.plus_minus_btnB > robot.J3min:
+            robot.J3 = robot.J3 - robot.plus_minus_btnB
             self.J3_currentVar.set(robot.J3)
             self.window.update_idletasks()
 
@@ -846,6 +936,28 @@ class PalamedesGUI:
     def J3_plus(self):
         if robot.J3 + robot.plus_minus_btn <robot.J3max:#here we have to write the max range 
             robot.J3 = robot.J3 + robot.plus_minus_btn
+            self.J3_currentVar.set(robot.J3)
+            self.window.update_idletasks()
+
+            #sending to arduino part
+            #we're just changing J1 but we need to update everyone just in case XYZ change something somewhere
+            robot.moveJarray[0][0]=robot.J1
+            robot.moveJarray[1][0]= fillThe0(robot.moveJarray[0][0])
+            robot.moveJarray[0][1]=robot.J2
+            robot.moveJarray[1][1]= fillThe0(robot.moveJarray[0][1])
+            robot.moveJarray[0][2]=robot.J3
+            robot.moveJarray[1][2]= fillThe0(robot.moveJarray[0][2])
+            print("here is the matrix:")
+            print(robot.moveJarray)
+            stringToSend = "J1" +robot.moveJarray[1][0] + str(robot.moveJarray[0][0]) + "J2" +robot.moveJarray[1][1] + str(robot.moveJarray[0][1])+ "J3" +robot.moveJarray[1][2] + str(robot.moveJarray[0][2])
+            print(stringToSend)
+            sendToArduino(stringToSend)
+        else:
+            print("You're trying to go too high")
+    
+    def J3_plusB(self):
+        if robot.J3 + robot.plus_minus_btnB <robot.J3max:#here we have to write the max range 
+            robot.J3 = robot.J3 + robot.plus_minus_btnB
             self.J3_currentVar.set(robot.J3)
             self.window.update_idletasks()
 
