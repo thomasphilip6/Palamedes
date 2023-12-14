@@ -17,6 +17,7 @@ import time
 import pickle
 import serial
 import keyboard
+import requests
 
 #chatGPT idea to use threading
 #import threading
@@ -26,7 +27,7 @@ import keyboard
 
 
 #that will be to define the window 0 is chess mode & 1 is robot
-mode = 1
+mode = 0
 
 #global variables
 homeJ1= 2000

@@ -7,6 +7,7 @@ from diffCheck import *
 from calibration import calibration, findCell, spotCell
 from skimage.metrics import structural_similarity
 from ChessEngine import startGame, restartGame, getWinMove, updateEngineBoard
+import requests
 
 
 
@@ -17,6 +18,21 @@ import os
 import time   
 
 import pickle
+
+url = "http://172.20.10.2:8080/shot.jpg"
+
+def getPicture(url,name):
+    img_resp=requests.get(url)
+    img_arr = np.array(bytearray(img_resp.content), dtype=np.uint8)
+    img=cv2.imdecode(img_arr,-1)
+    img=cv2.resize(img,(640,360))
+    cv2.imwrite(name, img)
+    img_arr_resized=np.array(Image.open(name).resize((640,360)))
+    return img_arr_resized
+
+def displayImage(image):
+    img=cv2.imdecode(image, -1)
+    cv2.imshow("Android_cam", img)
 
 
 def start():
@@ -170,17 +186,19 @@ def getDiffCheck():
 """
 def prep():
     #fill with the appropriate image name
-    emptyBoard='data\empty.jpg'
     #load images
-    boardWitness=np.array(Image.open('data\empty.jpg').resize((400,400)))
-    image0=np.array(Image.open('data\position0.jpg').resize((400,400)))
-    image1=np.array(Image.open('data\position1.jpg').resize((400,400)))
-    #faire la calibration une seule fois :
+    global boardWitness
+    global emptyBoard
+    boardWitness=getPicture(url,'empty.jpg')
+    emptyBoard='empty.jpg'
+    global coordinates
+    global cells
     coordinates, cells = calibration(emptyBoard)
-    global move1
-    move1=imageDifference(coordinates,cells,emptyBoard,boardWitness,image0,image1)
-    # from now on coordinates and cells are accessible with move1.cells and move1.coordinates
-    move1.load()
+    #boardWitness=np.array(Image.open('data\empty.jpg').resize((400,400)))
+    #previousPicture=getPicture(url,'previousPicture.jpg')
+    #image1=np.array(Image.open('data\position1.jpg').resize((400,400)))
+    #faire la calibration une seule fois :
+    
 
 def check_castling(p1,p2,p3,p4):
     pic_to_check= [p1,p2,p3,p4]
@@ -241,6 +259,17 @@ def check_castling(p1,p2,p3,p4):
 
 
 def mainMovesDiff():
+    print("write p to take previous picture ")
+    if input()=='p':
+        previousPicture=getPicture(url,'previousPicture.jpg')
+    print("write n to take new picture ")
+    if input()=='n':
+        newPicture=getPicture(url, 'newPicture.jpg')
+    global move1
+    move1=imageDifference(coordinates,cells,emptyBoard,boardWitness,previousPicture,newPicture)
+    # from now on coordinates and cells are accessible with move1.cells and move1.coordinates
+    move1.load()
+
     #to update the player move
     diffCells=move1.checkEveryCell()
     #cell1=diffCells[0]
@@ -287,19 +316,7 @@ def tell_move_to_move(round):
         start()#start the moves.py board 
         prep()#start the diff check and calibration
         startGame()#Start the chess engine and stockfish the API
-    elif round==1: 
-        #the player first because he plays white so diff check first
         mainMovesDiff()
-        printTheBoard()
-    elif round==2: 
-        #newMoves=["A2","A4"]
-        mainMovesApi()
-    else:
-        print("we're out of the round")
-    
-    ###il va falloir faire un truc comme ça####
-    """
-    #Player is white and he is playing round 1 so impair == white
     elif (round % 2 == 0):
         #Human
         mainMovesDiff()
@@ -309,6 +326,29 @@ def tell_move_to_move(round):
         #Robot
         mainMovesApi()
         #take a picture 
+
+    ###il va falloir faire un truc comme ça####
+    """
+    #Player is white and he is playing round 1 so impair == white
+    elif (round % 2 != 0):
+        #Human
+        mainMovesDiff()
+        printTheBoard()
+        #take a picture
+    else:
+        #Robot
+        mainMovesApi()
+        #take a picture 
+
+        elif round==1: 
+        #the player first because he plays white so diff check first
+        mainMovesDiff()
+        printTheBoard()
+    elif round==2: 
+        #newMoves=["A2","A4"]
+        mainMovesApi()
+    else:
+        print("we're out of the round")
     """
 
     
