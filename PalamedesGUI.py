@@ -22,6 +22,7 @@ import requests
 #chatGPT idea to use threading
 #import threading
 
+#while playing a normal game we take this one out on the other hand we need it for debugging 
 #comPort = 'COM11' 
 #ser = serial.Serial(comPort,baudrate = 2000000, timeout = 1)
 
@@ -35,7 +36,7 @@ homeJ2= 9000
 homeJ3= 500
 everyoneHome= "J1"+str(homeJ1)+"J2"+str(homeJ2)+"J3"+str(homeJ3)
 max_Time_Response=30 #how many seconds we wait in a loop before killing it
-#CellsArray = [[],[]]
+
 
 
 class robot:
@@ -62,7 +63,7 @@ class robot:
     Y = 0
     Z = 10
     grip = 1
-    gripBtnText = "Open gripper"
+    gripBtnText = "Close gripper"
     moveJarray = [[2000,9000,500],["0","0","00"]] #That's what i changed to upthe start Js
     goToarray= [["+","+","+"],["0","0","0"],["0000","0000","0000"]]#first the sign, then the number, then the zeroes to complete
     toSave = [[] for _ in range(64)]

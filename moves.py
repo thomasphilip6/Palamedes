@@ -3,7 +3,7 @@ from numpy import asarray
 import cv2
 from PIL import Image
 #from diffCheck import checkRessemblance, buildROI, checkEveryCell
-from diffCheck import *
+from diffCheck import*
 from calibration import calibration, findCell, spotCell
 from skimage.metrics import structural_similarity
 from ChessEngine import startGame, restartGame, getWinMove, updateEngineBoard
@@ -16,10 +16,41 @@ from sentence_transformers import SentenceTransformer, util
 import glob
 import os
 import time   
+import serial
 
 import pickle
 
 url = "http://172.20.10.2:8080/shot.jpg"
+
+#we'll comunicate with moves.py during a running game
+comPort = 'COM11' 
+ser = serial.Serial(comPort,baudrate = 2000000, timeout = 1)
+
+
+
+#Arduino command lines
+#when we get ridof a piece we're gonna toss it here
+dropmove =  "J116550J215550J301000" + '\r' #it is not the right position yet test it first
+gripperClose= "G1"+'\r'
+gripperOpen= "G0"+'\r'
+everyoneHome= "J102000J209000J300500" +'\r'
+correction= "C"+'\r'
+global correctPositions
+correctPositions= 0
+
+#we hav the values until row E
+realWorld = [["05800", "11800", "08100"], ["05200", "13350", "08100"], ["04800", "14550", "08150"], ["04450", "15500", "08250"], ["04250", "16450", "08300"], ["04100", "17350", "08300"], ["04100", "18300", "08500"], ["04400", "19350", "08550"],
+["06250", "11950", "08150"], ["05750", "13350", "08150"], ["05400", "14450", "08250"], ["05150", "15600", "08150"], ["05000", "16500", "08200"], ["05000", "17400", "08250"], ["05250", "18450", "08400"], ["06050", "19600", "08500"],
+["06800", "11750", "08050"], ["06300", "13200", "08100"], ["05950", "14500", "08150"], ["05850", "15300", "08200"], ["05650", "16350", "08300"], ["05850", "17300", "08350"], ["06200", "18300", "08500"], ["07100", "19300", "08600"],
+["07350", "11450", "08150"], ["06850", "13000", "08100"], ["06500", "14250", "08250"], ["06400", "15250", "08250"], ["06350", "16100", "08250"], ["06550", "17100", "08400"], ["07050", "17950", "08650"], ["08000", "18950", "08450"],
+["07900", "11150", "08200"], ["07450", "12650", "08250"], ["07150", "13900", "08200"], ["07100", "14850", "08250"], ["07100", "15850", "08450"], ["07350", "16650", "08550"], ["07800", "17450", "08650"], ["08550", "18250", "08600"],
+["08550", "10600", "08300"], ["08000", "12350", "08250"], ["07750", "13500", "08350"], ["07750", "14550", "08250"], ["07800", "15350", "08400"], ["08000", "16100", "08500"], ["08500", "16900", "08450"], ["09050", "17550", "08700"],
+["09300", "09700", "08250"], ["08700", "11650", "08200"], ["08450", "12850", "08200"], ["08400", "13950", "08300"], ["08450", "14750", "08350"], ["08650", "15550", "08400"], ["09050", "16200", "08550"], ["09600", "16850", "08700"],
+["10300", "08300", "08200"], ["09500", "10700", "08150"], ["09150", "12100", "08200"], ["09050", "13350", "08250"], ["09100", "14100", "08250"], ["09300", "14850", "08450"], ["09650", "15550", "08500"], ["10050", "16000", "08550"]]
+
+def cellToString(cell):
+    order= "J1" + realWorld[cell][0]+ "J2" + realWorld[cell][1] + "J3" + realWorld[cell][2] + '\r'
+    return order
 
 def getPicture(url,name):
     img_resp=requests.get(url)
@@ -61,7 +92,7 @@ def start():
     for letter in letters:
         for number in numbers:
             cells.append(letter + number)
-
+    #print(cells)
 
     z=0
     for j in range(1,9):
@@ -137,17 +168,43 @@ def readMove(p1, p2):
     return isNowEmpty,newCell
         
 def writeMove(p1,p2):
+    global correctPositions
     newCell=p2
     isNowEmpty=p1
+    newCellMove=cellToString(p2)
+    print(newCellMove)
+    isNowEmptyMove=cellToString(p1)
+    print(isNowEmptyMove)
     pieceMoved=board[p1]
     if board[p2][0]==op_Color:
         wasEaten=board[p2]
         #eatHim()#we would need a way to specify to the robot that he needs to first eat the 
+        #we need to send the info to eat a piece:
+        ser.write(gripperOpen.encode())
+        ser.write(newCellMove.encode())
+        ser.write(gripperClose.encode())
+        ser.write(everyoneHome.encode())
+        ser.write(gripperOpen.encode())
+        time.sleep(10)
+        correctPositions = correctPositions + 1
     else:
-        wasEaten=0
-        
+        wasEaten=0 
     board[newCell]=pieceMoved
-    board[isNowEmpty]=[0][0]    
+    board[isNowEmpty]=[0][0]  
+    #We do the move from our spot to the empty cell 
+    ser.write(gripperOpen.encode())
+    ser.write(isNowEmptyMove.encode())
+    ser.write(gripperClose.encode())
+    ser.write(newCellMove.encode())
+    ser.write(gripperOpen.encode())
+    ser.write(everyoneHome.encode())
+    correctPositions = correctPositions + 1
+    print(isNowEmptyMove)
+    print(newCellMove)
+
+    if (correctPositions >= 2):
+        ser.write(correction.encode())
+        correctPositions=0
 
 def translateCellToIndex(diffArray):
     p1 = cells.index(str(diffArray[0]))
@@ -350,11 +407,4 @@ def tell_move_to_move(round):
     else:
         print("we're out of the round")
     """
-
-    
-    
-    
-
-
-
 
