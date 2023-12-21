@@ -52,6 +52,18 @@ def cellToString(cell):
     order= "J1" + realWorld[cell][0]+ "J2" + realWorld[cell][1] + "J3" + realWorld[cell][2] + '\r'
     return order
 
+def sendToArduino(command):
+    ser.write(command.encode()) 
+
+    #start_time = time.time()  # Record the start time
+
+    while True:
+        line = ser.readline().decode().strip()
+        if line == "ready":
+            print("We received an answer, Arduino is ready")
+            break  # End of data, exit the loop
+
+
 def getPicture(url,name):
     img_resp=requests.get(url)
     img_arr = np.array(bytearray(img_resp.content), dtype=np.uint8)
@@ -180,30 +192,29 @@ def writeMove(p1,p2):
         wasEaten=board[p2]
         #eatHim()#we would need a way to specify to the robot that he needs to first eat the 
         #we need to send the info to eat a piece:
-        ser.write(gripperOpen.encode())
-        ser.write(newCellMove.encode())
-        ser.write(gripperClose.encode())
-        ser.write(everyoneHome.encode())
-        ser.write(gripperOpen.encode())
-        time.sleep(10)
+        sendToArduino(gripperOpen)
+        sendToArduino(newCellMove)
+        sendToArduino(gripperClose)
+        sendToArduino(everyoneHome)
+        sendToArduino(gripperOpen)
         correctPositions = correctPositions + 1
     else:
         wasEaten=0 
     board[newCell]=pieceMoved
     board[isNowEmpty]=[0][0]  
     #We do the move from our spot to the empty cell 
-    ser.write(gripperOpen.encode())
-    ser.write(isNowEmptyMove.encode())
-    ser.write(gripperClose.encode())
-    ser.write(newCellMove.encode())
-    ser.write(gripperOpen.encode())
-    ser.write(everyoneHome.encode())
+    sendToArduino(gripperOpen)
+    sendToArduino(isNowEmptyMove)
+    sendToArduino(gripperClose)
+    sendToArduino(newCellMove)
+    sendToArduino(gripperOpen)
+    sendToArduino(everyoneHome)
     correctPositions = correctPositions + 1
     print(isNowEmptyMove)
     print(newCellMove)
 
     if (correctPositions >= 2):
-        ser.write(correction.encode())
+        sendToArduino(correction)
         correctPositions=0
 
 def translateCellToIndex(diffArray):
