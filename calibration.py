@@ -120,7 +120,7 @@ def findIntersections(Line1,Line2,debug,image):
 
 def correctData(corners):
     dataArray=[]
-    if corners[1][0][0] > corners[0][0][0] + 5 and corners[1][0][1]<200:
+    if corners[1][0][0] > corners[0][0][0] + 5 and corners[1][0][1]< (360/2):
         #if the array if filled by incrementing the x direction first instead of y
         print("case 1 : data is being reworked")
         for j in range(42,49):
@@ -128,7 +128,7 @@ def correctData(corners):
                 dataArray.append(corners[j-i*7])
         correctedData=np.array(dataArray)
 
-    elif corners[1][0][0] < corners[0][0][0] + 5 and corners[0][0][1] >200:
+    elif corners[1][0][0] < corners[0][0][0] - 5 and corners[0][0][1] >(360/2):
         print("case 2 : data is being reworked")
         jArray=[6,5,4,3,2,1,0]
         for j in jArray:
@@ -145,15 +145,16 @@ def correctData(corners):
 def calibration(imageToCalibrate):
 
     #load the image and a test one
-    image2=np.array(Image.open(imageToCalibrate).resize((400,400)))
+    image2=np.array(Image.open(imageToCalibrate).resize((640,360)))
     image2=cv2.cvtColor(image2,cv2.COLOR_BGR2RGB)
-    testImage=np.array(Image.open(imageToCalibrate).resize((400,400)))
+    testImage=np.array(Image.open(imageToCalibrate).resize((640,360)))
     testImage=cv2.cvtColor(testImage,cv2.COLOR_BGR2RGB)
     grayImage = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
     grayImage2 = cv2.cvtColor(image2,cv2.COLOR_BGR2GRAY)
 
     #look for a 7by7 chessboard pattern
     retval, corners = cv2.findChessboardCorners(grayImage, (nline, ncol), None)
+    print(corners)
     correctedData=correctData(corners)
     if (retval):
         print("there is a board")
